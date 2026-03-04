@@ -1,0 +1,52 @@
+﻿using Amazon.SQS;
+using Amazon.Extensions.NETCore.Setup;
+using ms_users.Repositories;
+using ms_users.Services;
+using ms_users.Messaging;
+
+namespace ms_users;
+
+public class Startup
+{
+  public Startup(IConfiguration configuration)
+  {
+    Configuration = configuration;
+  }
+
+  public IConfiguration Configuration { get; }
+
+  public void ConfigureServices(IServiceCollection services)
+  {
+    services.AddControllers();
+
+    // 🔥 Registrar cliente AWS (usa credenciais da Lambda automaticamente)
+    services.AddDefaultAWSOptions(Configuration.GetAWSOptions());
+    services.AddAWSService<IAmazonSQS>();
+
+    // 🔥 Registrar dependências da aplicação
+    services.AddScoped<UserRepository>();
+    services.AddScoped<UserService>();
+    services.AddScoped<PaymentPublisher>();
+  }
+
+  public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+  {
+    if (env.IsDevelopment())
+    {
+      app.UseDeveloperExceptionPage();
+    }
+
+    app.UseRouting();
+
+    app.UseAuthorization();
+
+    app.UseEndpoints(endpoints =>
+    {
+      endpoints.MapControllers();
+      endpoints.MapGet("/", async context =>
+      {
+        await context.Response.WriteAsync("Users API running on AWS Lambda");
+      });
+    });
+  }
+}
