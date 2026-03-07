@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity.Data;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using ms_users.Models;
 using ms_users.Services;
 
 namespace ms_users.Controllers;
@@ -49,5 +51,29 @@ public class UsersController : ControllerBase
             return NotFound(new { message = "Usuário não encontrado." });
 
         return Ok(new { profile.Id, profile.Email, profile.Name });
+    }
+
+    [Authorize] 
+    [HttpPut("{id}/credentials")]
+    public async Task<IActionResult> UpdateCredentials(string id, [FromBody] Users request)
+    {
+        try
+        {
+            var updatedProfile = await _service.UpdateCredentials(id, request);
+
+            if (updatedProfile == null)
+                return NotFound(new { message = "Usuário não encontrado." });
+
+            return Ok(new
+            {
+                updatedProfile.Id,
+                updatedProfile.Email,
+                updatedProfile.Name
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

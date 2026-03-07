@@ -25,7 +25,7 @@ public class UserService
         {
             Id = Guid.NewGuid().ToString(),
             Email = email,
-            Password = password // Implementar o Encrypt da senha
+            Password = BCrypt.Net.BCrypt.HashPassword(password)
         };
 
         await _repository.Create(user);
@@ -40,11 +40,12 @@ public class UserService
 
         return user;
     }
+
     public async Task<string?> Login(string email, string password)
     {
         var user = await _repository.GetByEmailAsync(email);
 
-        if (user == null || user.Password != password) // Implementar o Encrypt da senha
+        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             return null;
 
         return $"mock-jwt-token-{user.Id}"; // Substituir pelo JWT
@@ -53,5 +54,30 @@ public class UserService
     public async Task<Users?> GetProfile(string id)
     {
         return await _repository.GetByIdAsync(id);
+    }
+
+    public async Task<Users?> UpdateCredentials(string id, Users request)
+    {
+        var user = await _repository.GetByIdAsync(id);
+        if (user == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(request.Email) && user.Email != request.Email)
+        {
+            var existingUser = await _repository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                throw new Exception("Este e-mail já está em uso por outra conta.");
+            }
+            user.Email = request.Email;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            user.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        }
+
+        await _repository.UpdateAsync(id, user);
+
+        return user;
     }
 }
