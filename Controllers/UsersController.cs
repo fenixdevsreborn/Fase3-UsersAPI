@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.Data;
+﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using ms_users.Models;
 using ms_users.Services;
 
 namespace ms_users.Controllers;
@@ -10,70 +8,45 @@ namespace ms_users.Controllers;
 [Route("users")]
 public class UsersController : ControllerBase
 {
-    private readonly UserService _service;
+  private readonly UserService _service;
 
-    public UsersController(UserService service)
-    {
-        _service = service;
-    }
+  public UsersController(UserService service)
+  {
+    _service = service;
+  }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    {
-        try
-        {
-            var user = await _service.Register(request.Email, request.Password);
-            return Created("", new { user.Id, user.Email, user.Name, user.CreatedAt });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
+  [HttpPost("register")]
+  public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+  {
+    var user = await _service.Register(
+        request.Email,
+        request.Password
+    );
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        var token = await _service.Login(request.Email, request.Password);
+    return Created("", user);
+  }
 
-        if (string.IsNullOrEmpty(token))
-            return Unauthorized(new { message = "E-mail ou senha inválidos." });
+  [HttpPost("login")]
+  public async Task<IActionResult> Login([FromBody] LoginRequest request)
+  {
+    var result = await _service.Login(request.Email, request.Password);
+    return Ok(result);
+  }
 
-        return Ok(new { token });
-    }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetProfile(string id)
-    {
-        var profile = await _service.GetProfile(id);
+  [HttpGet("me")]
+  public async Task<IActionResult> Me()
+  {
+    var userId = User.FindFirst("sub")?.Value;
 
-        if (profile == null)
-            return NotFound(new { message = "Usuário não encontrado." });
+    if (userId == null)
+      return Unauthorized();
 
-        return Ok(new { profile.Id, profile.Email, profile.Name });
-    }
+    var user = await _service.GetById(userId);
 
-    [Authorize] 
-    [HttpPut("{id}/credentials")]
-    public async Task<IActionResult> UpdateCredentials(string id, [FromBody] Users request)
-    {
-        try
-        {
-            var updatedProfile = await _service.UpdateCredentials(id, request);
+    if (user == null)
+      return NotFound();
 
-            if (updatedProfile == null)
-                return NotFound(new { message = "Usuário não encontrado." });
-
-            return Ok(new
-            {
-                updatedProfile.Id,
-                updatedProfile.Email,
-                updatedProfile.Name
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
+    return Ok(user);
+  }
 }

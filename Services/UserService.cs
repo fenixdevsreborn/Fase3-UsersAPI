@@ -1,109 +1,104 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using ms_users.Events;
+﻿using ms_users.Repositories;
 using ms_users.Messaging;
-using ms_users.Models;
-using ms_users.Repositories;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using ms_users.Events;
+using Amazon.CognitoIdentityProvider.Model;
+using Amazon.CognitoIdentityProvider;
 
 namespace ms_users.Services;
 
 public class UserService
 {
-    private readonly UserRepository _repository;
-    private readonly PaymentPublisher _publisher;
-    private readonly IConfiguration _configuration;
+  private readonly UserRepository _repository;
+  private readonly EventPublisher _publisher;
 
-    public UserService(UserRepository repository, PaymentPublisher publisher, IConfiguration configuration)
+  public UserService(UserRepository repository, EventPublisher publisher)
+  {
+    _repository = repository;
+    _publisher = publisher;
+  }
+
+  public async Task<Users> Register(string email, string password)
+  {
+    var client = new AmazonCognitoIdentityProviderClient();
+
+    var signUpRequest = new SignUpRequest
     {
-        _repository = repository;
-        _publisher = publisher;
-        _configuration = configuration;
-    }
+      ClientId = Environment.GetEnvironmentVariable("COGNITO_CLIENT_ID"),
+      Username = email,
+      Password = password
+    };
 
-    public async Task<Users> Register(string email, string password)
+    var response = await client.SignUpAsync(signUpRequest);
+
+    var cognitoSub = response.UserSub;
+
+    var user = new Users
     {
-        var existingUser = await _repository.GetByEmailAsync(email);
-        if (existingUser != null) throw new Exception("E-mail já cadastrado.");
+      Id = cognitoSub,
+      Email = email
+    };
 
-        var user = new Users
+    await _repository.Create(user);
+
+    // =============================
+    // EVENTO DE USUÁRIO CRIADO
+    // =============================
+
+    var userEvent = new UserRegisteredEvent
+    {
+      UserId = user.Id,
+      Email = user.Email
+    };
+
+    // =============================
+    // EVENTO DE EMAIL
+    // =============================
+
+    var emailEvent = new EmailNotificationEvent
+    {
+      Title = "Bem-vindo à Game Store",
+      Subtitle = "Sua conta foi criada com sucesso",
+      Body = "Agora você pode comprar e jogar seus games favoritos.",
+      Recipient = email
+    };
+
+    var notificationQueue =
+        Environment.GetEnvironmentVariable("NOTIFICATION_QUEUE_URL");
+
+    await _publisher.PublishAsync(notificationQueue, userEvent);
+
+    await _publisher.PublishAsync(notificationQueue, emailEvent);
+
+    return user;
+  }
+
+  public async Task<object> Login(string email, string password)
+  {
+    var client = new AmazonCognitoIdentityProviderClient();
+
+    var request = new InitiateAuthRequest
+    {
+      AuthFlow = AuthFlowType.USER_PASSWORD_AUTH,
+      ClientId = Environment.GetEnvironmentVariable("COGNITO_CLIENT_ID"),
+      AuthParameters = new Dictionary<string, string>
         {
-            Id = Guid.NewGuid().ToString(),
-            Email = email,
-            Password = BCrypt.Net.BCrypt.HashPassword(password)
-        };
-
-        await _repository.Create(user);
-
-        var evt = new UserRegisteredEvent
-        {
-            UserId = user.Id,
-            Email = user.Email
-        };
-
-        await _publisher.PublishAsync(evt);
-
-        return user;
-    }
-
-    public async Task<string?> Login(string email, string password)
-    {
-        var user = await _repository.GetByEmailAsync(email);
-
-        if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
-            return null;
-
-        var secretKey = _configuration["JwtSettings:Secret"];
-        var key = Encoding.ASCII.GetBytes(secretKey);
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email)
-        }),
-            Expires = DateTime.UtcNow.AddHours(2),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-
-        return tokenHandler.WriteToken(token); 
-    }
-
-    public async Task<Users?> GetProfile(string id)
-    {
-        return await _repository.GetByIdAsync(id);
-    }
-
-    public async Task<Users?> UpdateCredentials(string id, Users request)
-    {
-        var user = await _repository.GetByIdAsync(id);
-        if (user == null) return null;
-
-        if (!string.IsNullOrWhiteSpace(request.Email) && user.Email != request.Email)
-        {
-            var existingUser = await _repository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
-            {
-                throw new Exception("Este e-mail já está em uso por outra conta.");
-            }
-            user.Email = request.Email;
+            { "USERNAME", email },
+            { "PASSWORD", password }
         }
+    };
 
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            user.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        }
+    var response = await client.InitiateAuthAsync(request);
 
-        await _repository.UpdateAsync(id, user);
+    return new
+    {
+      IdToken = response.AuthenticationResult.IdToken,
+      AccessToken = response.AuthenticationResult.AccessToken,
+      RefreshToken = response.AuthenticationResult.RefreshToken
+    };
+  }
 
-        return user;
-    }
+  public async Task<Users?> GetById(string id)
+  {
+    return await _repository.GetById(id);
+  }
 }

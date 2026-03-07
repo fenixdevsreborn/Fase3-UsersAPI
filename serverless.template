@@ -77,7 +77,8 @@
         "Environment": {
           "Variables": {
             "USERS_TABLE": "Users",
-            "PAYMENT_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/payment-queue"
+            "NOTIFICATION_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/payment-queue",
+            "COGNITO_CLIENT_ID": "4pt4nk3r4ubhd8855b22ar2tse"
           }
         },
 
