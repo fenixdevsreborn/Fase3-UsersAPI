@@ -1,7 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Amazon.DynamoDBv2.DataModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace ms_users.Models;
 
+[DynamoDBTable("Usuarios")]
 public class Users
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();

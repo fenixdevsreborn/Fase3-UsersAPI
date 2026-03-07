@@ -1,7 +1,12 @@
-﻿using ms_users.Models;
-using ms_users.Repositories;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using ms_users.Events;
 using ms_users.Messaging;
+using ms_users.Models;
+using ms_users.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace ms_users.Services;
 
@@ -9,11 +14,13 @@ public class UserService
 {
     private readonly UserRepository _repository;
     private readonly PaymentPublisher _publisher;
+    private readonly IConfiguration _configuration;
 
-    public UserService(UserRepository repository, PaymentPublisher publisher)
+    public UserService(UserRepository repository, PaymentPublisher publisher, IConfiguration configuration)
     {
         _repository = repository;
         _publisher = publisher;
+        _configuration = configuration;
     }
 
     public async Task<Users> Register(string email, string password)
@@ -48,7 +55,26 @@ public class UserService
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             return null;
 
-        return $"mock-jwt-token-{user.Id}"; // Substituir pelo JWT
+        var secretKey = _configuration["JwtSettings:Secret"];
+        var key = Encoding.ASCII.GetBytes(secretKey);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email)
+        }),
+            Expires = DateTime.UtcNow.AddHours(2),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+
+        return tokenHandler.WriteToken(token); 
     }
 
     public async Task<Users?> GetProfile(string id)
