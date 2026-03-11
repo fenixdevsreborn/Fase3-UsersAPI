@@ -2,6 +2,7 @@
 using ms_users.Repositories;
 using ms_users.Services;
 using ms_users.Messaging;
+using Amazon.DynamoDBv2;
 
 namespace ms_users;
 
@@ -20,6 +21,7 @@ public class Startup
 
     services.AddDefaultAWSOptions(Configuration.GetAWSOptions());
     services.AddAWSService<IAmazonSQS>();
+    services.AddAWSService<IAmazonDynamoDB>();
 
     services.AddScoped<UserRepository>();
     services.AddScoped<UserService>();

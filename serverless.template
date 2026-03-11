@@ -5,137 +5,146 @@
 
   "Resources": {
 
-    "UsersTable": {
-      "Type": "AWS::DynamoDB::Table",
-      "Properties": {
-        "TableName": "Users",
-        "BillingMode": "PAY_PER_REQUEST",
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "Id",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "Id",
-            "KeyType": "HASH"
-          }
-        ]
-      }
-    },
+      "UsersTable": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "Users",
+          "BillingMode": "PAY_PER_REQUEST",
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "Id",
+              "AttributeType": "S"
+            }
+          ],
+          "KeySchema": [
+            {
+              "AttributeName": "Id",
+              "KeyType": "HASH"
+            }
+          ]
+        }
+      },
 
-    "UsersApi": {
-      "Type": "AWS::Serverless::Api",
-      "Properties": {
-        "StageName": "Prod",
-        "Auth": {
-          "DefaultAuthorizer": "CognitoAuthorizer",
-          "Authorizers": {
-            "CognitoAuthorizer": {
-              "UserPoolArn": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_tx4MRYYtj"
+      "UsersApi": {
+        "Type": "AWS::Serverless::Api",
+        "Properties": {
+          "StageName": "Prod",
+          "Auth": {
+            "DefaultAuthorizer": "CognitoAuthorizer",
+            "Authorizers": {
+              "CognitoAuthorizer": {
+                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_tx4MRYYtj"
+              }
             }
           }
         }
-      }
-    },
+      },
 
-    "AspNetCoreFunction": {
-      "Type": "AWS::Serverless::Function",
-      "Properties": {
-        "Handler": "ms-users::ms_users.LambdaEntryPoint::FunctionHandlerAsync",
-        "Runtime": "dotnet8",
-        "MemorySize": 512,
-        "Timeout": 30,
+      "AspNetCoreFunction": {
+        "Type": "AWS::Serverless::Function",
+        "Properties": {
+          "Handler": "ms-users::ms_users.LambdaEntryPoint::FunctionHandlerAsync",
+          "Runtime": "dotnet8",
+          "MemorySize": 512,
+          "Timeout": 30,
 
-        "Policies": [
-          "AWSLambdaBasicExecutionRole",
-          {
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "dynamodb:PutItem",
-                  "dynamodb:GetItem",
-                  "dynamodb:UpdateItem",
-                  "dynamodb:DeleteItem",
-                  "dynamodb:Query",
-                  "dynamodb:Scan",
-                  "dynamodb:DescribeTable"
-                ],
-                "Resource": "arn:aws:dynamodb:us-east-1:864899865331:table/Users"
-              }
-            ]
-          },
-          {
-            "SQSSendMessagePolicy": {
-              "QueueName": "payment-queue"
-            }
-          }
-        ],
-
-        "Environment": {
-          "Variables": {
-            "USERS_TABLE": "Users",
-            "NOTIFICATION_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/payment-queue",
-            "COGNITO_CLIENT_ID": "4pt4nk3r4ubhd8855b22ar2tse"
-          }
-        },
-
-        "Events": {
-
-          "RegisterUser": {
-            "Type": "Api",
-            "Properties": {
-              "RestApiId": { "Ref": "UsersApi" },
-              "Path": "/users/register",
-              "Method": "POST",
-              "Auth": {
-                "Authorizer": "NONE"
+          "Policies": [
+            "AWSLambdaBasicExecutionRole",
+            {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:DescribeTable"
+                  ],
+                  "Resource": "arn:aws:dynamodb:us-east-1:864899865331:table/Users"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cognito-idp:AdminConfirmSignUp",
+                    "cognito-idp:AdminUpdateUserAttributes"
+                  ],
+                  "Resource": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_ZDPqjaUp4"
+                }
+              ]
+            },
+            {
+              "SQSSendMessagePolicy": {
+                "QueueName": "notification-queue"
               }
             }
+          ],
+
+          "Environment": {
+            "Variables": {
+              "USERS_TABLE": "Users",
+              "NOTIFICATION_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/notification-queue",
+              "COGNITO_CLIENT_ID": "4pt4nk3r4ubhd8855b22ar2tse",
+              "COGNITO_USER_POOL_ID": "us-east-1_ZDPqjaUp4"
+            }
           },
 
-          "LoginUser": {
-            "Type": "Api",
-            "Properties": {
-              "RestApiId": { "Ref": "UsersApi" },
-              "Path": "/users/login",
-              "Method": "POST",
-              "Auth": {
-                "Authorizer": "NONE"
+          "Events": {
+
+            "RegisterUser": {
+              "Type": "Api",
+              "Properties": {
+                "RestApiId": { "Ref": "UsersApi" },
+                "Path": "/users/register",
+                "Method": "POST",
+                "Auth": {
+                  "Authorizer": "NONE"
+                }
               }
-            }
-          },
+            },
 
-          "GetUserById": {
-            "Type": "Api",
-            "Properties": {
-              "RestApiId": { "Ref": "UsersApi" },
-              "Path": "/users/{id}",
-              "Method": "GET"
-            }
-          },
+            "LoginUser": {
+              "Type": "Api",
+              "Properties": {
+                "RestApiId": { "Ref": "UsersApi" },
+                "Path": "/users/login",
+                "Method": "POST",
+                "Auth": {
+                  "Authorizer": "NONE"
+                }
+              }
+            },
 
-          "UpdateUser": {
-            "Type": "Api",
-            "Properties": {
-              "RestApiId": { "Ref": "UsersApi" },
-              "Path": "/users/{id}",
-              "Method": "PUT"
-            }
-          },
+            "GetUserById": {
+              "Type": "Api",
+              "Properties": {
+                "RestApiId": { "Ref": "UsersApi" },
+                "Path": "/users/{id}",
+                "Method": "GET"
+              }
+            },
 
-          "DeleteUser": {
-            "Type": "Api",
-            "Properties": {
-              "RestApiId": { "Ref": "UsersApi" },
-              "Path": "/users/{id}",
-              "Method": "DELETE"
+            "UpdateUser": {
+              "Type": "Api",
+              "Properties": {
+                "RestApiId": { "Ref": "UsersApi" },
+                "Path": "/users/{id}",
+                "Method": "PUT"
+              }
+            },
+
+            "DeleteUser": {
+              "Type": "Api",
+              "Properties": {
+                "RestApiId": { "Ref": "UsersApi" },
+                "Path": "/users/{id}",
+                "Method": "DELETE"
+              }
             }
           }
         }
       }
     }
   }
-}

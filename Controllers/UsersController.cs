@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using ms_users.Models;
 using ms_users.Services;
 
 namespace ms_users.Controllers;
@@ -16,12 +17,9 @@ public class UsersController : ControllerBase
   }
 
   [HttpPost("register")]
-  public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+  public async Task<IActionResult> Register([FromBody] RegisterRequestUser request)
   {
-    var user = await _service.Register(
-        request.Email,
-        request.Password
-    );
+    var user = await _service.Register(request);
 
     return Created("", user);
   }

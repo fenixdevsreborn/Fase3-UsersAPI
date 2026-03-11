@@ -3,6 +3,7 @@ using ms_users.Messaging;
 using ms_users.Events;
 using Amazon.CognitoIdentityProvider.Model;
 using Amazon.CognitoIdentityProvider;
+using ms_users.Models;
 
 namespace ms_users.Services;
 
@@ -17,25 +18,65 @@ public class UserService
     _publisher = publisher;
   }
 
-  public async Task<Users> Register(string email, string password)
+  public async Task<Users> Register(RegisterRequestUser request)
   {
     var client = new AmazonCognitoIdentityProviderClient();
 
     var signUpRequest = new SignUpRequest
     {
       ClientId = Environment.GetEnvironmentVariable("COGNITO_CLIENT_ID"),
-      Username = email,
-      Password = password
+      Username = request.Nickname,
+      Password = request.Password,
+      UserAttributes = new List<AttributeType>
+        {
+            new AttributeType
+            {
+                Name = "email",
+                Value = request.Email
+            },
+            new AttributeType
+            {
+                Name = "nickname",
+                Value = request.Nickname
+            },
+            new AttributeType
+            {
+                Name = "name",
+                Value = request.Name
+            }
+        }
     };
 
     var response = await client.SignUpAsync(signUpRequest);
+
+    await client.AdminConfirmSignUpAsync(new AdminConfirmSignUpRequest
+    {
+      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
+      Username = request.Nickname
+    });
+
+    await client.AdminUpdateUserAttributesAsync(new AdminUpdateUserAttributesRequest
+    {
+      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
+      Username = request.Nickname,
+      UserAttributes = new List<AttributeType>
+    {
+        new AttributeType
+        {
+            Name = "email_verified",
+            Value = "true"
+        }
+    }
+    });
 
     var cognitoSub = response.UserSub;
 
     var user = new Users
     {
       Id = cognitoSub,
-      Email = email
+      Email = request.Email,
+      Nickname = request.Nickname,
+      Name = request.Name,
     };
 
     await _repository.Create(user);
@@ -59,7 +100,7 @@ public class UserService
       Title = "Bem-vindo à Game Store",
       Subtitle = "Sua conta foi criada com sucesso",
       Body = "Agora você pode comprar e jogar seus games favoritos.",
-      Recipient = email
+      Recipient = request.Email
     };
 
     var notificationQueue =
