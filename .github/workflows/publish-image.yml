@@ -1,0 +1,89 @@
+# ------------------------------------------------------------------------------
+# Publish image — FCG Cloud Platform (microsserviço)
+# Build da imagem Docker, push no ECR (tag = SHA), opcional latest, e
+# repository_dispatch para o Fase3-InfraOrchestrador.
+# ------------------------------------------------------------------------------
+
+name: Publish image
+
+on:
+  push:
+    branches: [junonn/mvp-aws]
+
+env:
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # obrigatório para OIDC com AWS
+      contents: read
+
+    outputs:
+      image_uri: ${{ steps.meta.outputs.tags }}
+      image_tag: ${{ steps.meta.outputs.sha_tag }}
+
+    steps:
+      # 1. Checkout do repositório
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Autenticação na AWS via OIDC (sem access key; role assumida pelo GitHub)
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_ECR }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      # 3. Login no ECR (registry disponível em steps.ecr.outputs.registry)
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Definir tag da imagem (SHA curto) e URI completa para o payload
+      - name: Docker meta (tags)
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          REGISTRY="${{ steps.ecr.outputs.registry }}"
+          REPO="${{ vars.ECR_REPOSITORY_NAME }}"
+          echo "tags=${REGISTRY}/${REPO}:${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "sha_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      # 5. Build da imagem (Dockerfile na raiz do repo)
+      - name: Build image
+        run: docker build -f Dockerfile -t ${{ steps.meta.outputs.tags }} .
+
+      # 6. Push da imagem com tag SHA
+      - name: Push image
+        run: docker push ${{ steps.meta.outputs.tags }}
+
+      # 7. Opcional: push da tag latest em ambiente prod (facilita rollback "latest")
+      - name: Push latest (production only)
+        if: vars.ENVIRONMENT == 'prod'
+        run: |
+          docker tag ${{ steps.meta.outputs.tags }} ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME }}:latest
+          docker push ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME }}:latest
+
+  # 8. Disparar o orquestrador para atualizar a infra com a nova imagem
+  trigger-orchestrator:
+    name: Trigger infra orchestrator
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Fase3-InfraOrchestrador
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ORCHESTRATOR_REPO_TOKEN }}
+          repository: ${{ vars.ORCHESTRATOR_REPO }}
+          event-type: deploy-request
+          client-payload: |
+            {
+              "service_name": "${{ vars.SERVICE_NAME || 'users-api' }}",
+              "image_tag": "${{ needs.build-and-push.outputs.image_tag }}",
+              "image_uri": "${{ needs.build-and-push.outputs.image_uri }}",
+              "commit_sha": "${{ github.sha }}",
+              "environment": "${{ vars.ENVIRONMENT || 'prod' }}"
+            }

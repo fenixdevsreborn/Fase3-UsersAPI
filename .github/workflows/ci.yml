@@ -1,0 +1,50 @@
+# ------------------------------------------------------------------------------
+# CI — FCG Cloud Platform (microsserviço)
+# Restore, build (Release) e testes. Falha se qualquer etapa falhar.
+# ------------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+    branches: [junonn/mvp-aws]
+  pull_request:
+    branches: [junonn/mvp-aws]
+
+env:
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout do código do repositório
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Instalação do .NET (versão definida em env)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # 3. Restore de dependências
+      - name: Restore
+        run: dotnet restore Fcg.Users.slnx
+
+      # 4. Build em Release (depende do restore; --no-restore evita segundo restore)
+      - name: Build (Release)
+        run: dotnet build Fcg.Users.slnx -c Release --no-restore
+
+      # 5. Testes em Release; falha do job se algum teste falhar
+      - name: Test (Release)
+        run: dotnet test Fcg.Users.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=results.trx"
+
+      # 6. Upload opcional dos resultados para download na Actions
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"

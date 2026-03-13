@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Fcg.Users.Api/Fcg.Users.Api.csproj" />
+    <Project Path="src/Fcg.Users.Application/Fcg.Users.Application.csproj" />
+    <Project Path="src/Fcg.Users.Contracts/Fcg.Users.Contracts.csproj" />
+    <Project Path="src/Fcg.Users.Domain/Fcg.Users.Domain.csproj" />
+    <Project Path="src/Fcg.Users.Infrastructure/Fcg.Users.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fcg.Users.UnitTests/Fcg.Users.UnitTests.csproj" />
+    <Project Path="tests/Fcg.Users.IntegrationTests/Fcg.Users.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
