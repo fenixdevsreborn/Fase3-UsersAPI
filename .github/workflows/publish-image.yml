@@ -50,8 +50,8 @@ jobs:
         run: |
           REGISTRY="${{ steps.ecr.outputs.registry }}"
           REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03' }}"
-          echo "tags=${REGISTRY}/${REPO}:latest" >> $GITHUB_OUTPUT
-          echo "image_tag=users-api:latest" >> $GITHUB_OUTPUT
+          echo "tags=${REGISTRY}/${REPO}:users-api-latest" >> $GITHUB_OUTPUT
+          echo "image_tag=users-api:users-api-latest" >> $GITHUB_OUTPUT
 
       # 5. Build da imagem (Dockerfile na raiz do repo)
       - name: Build image
