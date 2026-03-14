@@ -22,7 +22,6 @@
     <ProjectReference Include="..\Fcg.Users.Application\Fcg.Users.Application.csproj" />
     <ProjectReference Include="..\Fcg.Users.Domain\Fcg.Users.Domain.csproj" />
     <ProjectReference Include="..\Fcg.Users.Contracts\Fcg.Users.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\Fase3-Shared\src\Fcg.Shared.Auth\Fcg.Shared.Auth.csproj" />
   </ItemGroup>
 
 </Project>

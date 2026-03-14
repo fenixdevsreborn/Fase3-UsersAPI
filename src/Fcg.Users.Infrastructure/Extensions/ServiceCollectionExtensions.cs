@@ -1,4 +1,5 @@
 using Fcg.Users.Application.Services;
+using Fcg.Users.Contracts.Auth;
 using Fcg.Users.Domain.Repositories;
 using Fcg.Users.Infrastructure.Persistence;
 using Fcg.Users.Infrastructure.Repositories;

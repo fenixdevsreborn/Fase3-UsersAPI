@@ -1,5 +1,7 @@
-using Fcg.Shared.Auth;
-using Fcg.Shared.Observability;
+using Fcg.Users.Api.Extensions;
+using Fcg.Users.Api.Middleware;
+using Fcg.Users.Api.Observability;
+using Fcg.Users.Api.OpenApi;
 using Fcg.Users.Domain.Entities;
 using Fcg.Users.Domain.Enums;
 using Fcg.Users.Infrastructure.Extensions;
@@ -11,32 +13,21 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuration
 builder.Configuration.AddEnvironmentVariables();
 
-// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// DbContext + Application/Infrastructure services
 builder.Services.AddUsersInfrastructure(builder.Configuration, builder.Environment);
+builder.Services.AddUsersApiAuth(builder.Configuration);
+builder.Services.AddUsersApiObservability(builder.Configuration, "Fcg.Users.Api");
 
-// JWT Authentication & Authorization (shared FCG)
-builder.Services.AddFcgJwtBearer(builder.Configuration);
-builder.Services.AddFcgAuthorization();
-
-// Observability
-builder.Services.AddProjectObservability(builder.Configuration, "Fcg.Users.Api");
-
-// Controllers
 builder.Services.AddControllers();
 
-// Health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<UsersDbContext>("db", tags: new[] { "ready" });
 
-// OpenAPI + Scalar (desabilitado em Production; use EnableOpenApi: true para forçar)
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -47,15 +38,13 @@ builder.Services.AddOpenApi(options =>
         document.Info.Description = "User management and authentication for FCG Cloud Platform.";
         return Task.CompletedTask;
     });
-    options.AddDocumentTransformer<Fcg.Users.Api.OpenApi.BearerSecuritySchemeTransformer>();
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
 });
 
 var app = builder.Build();
 
-// Observability (correlation id, HTTP metrics, exception log + metric)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseFcgObservability();
-// Global exception handling
-app.UseMiddleware<Fcg.Users.Api.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -81,7 +70,6 @@ app.MapGet("/api/discovery", (HttpContext ctx) => new
     healthUrl = $"{ctx.Request.PathBase.Value?.TrimEnd('/')}/health"
 }).AllowAnonymous();
 
-// Migrations + bootstrap first admin
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UsersDbContext>();

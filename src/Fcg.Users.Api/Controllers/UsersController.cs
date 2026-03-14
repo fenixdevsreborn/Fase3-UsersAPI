@@ -1,10 +1,10 @@
-using System.Security.Claims;
-using Fcg.Shared.Auth;
-using Fcg.Shared.Observability;
+using Fcg.Users.Api.Authorization;
+using Fcg.Users.Api.Observability;
+using Fcg.Users.Application.Exceptions;
+using Fcg.Users.Application.Services;
+using Fcg.Users.Contracts.Auth;
 using Fcg.Users.Contracts.Paging;
 using Fcg.Users.Contracts.Users;
-using Fcg.Users.Application.Services;
-using Fcg.Users.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,20 +26,11 @@ public class UsersController : ControllerBase
         _meters = meters;
     }
 
-    private Guid? CurrentUserId
-    {
-        get
-        {
-            var sub = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            return Guid.TryParse(sub, out var id) ? id : null;
-        }
-    }
-
     // ----- Admin-only endpoints -----
 
     /// <summary>Create a new user (Admin only).</summary>
     [HttpPost]
-    [Authorize(Roles = FcgRoles.Admin)]
+    [Authorize(Policy = FcgPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -63,7 +54,7 @@ public class UsersController : ControllerBase
 
     /// <summary>List users with pagination and filters (Admin only).</summary>
     [HttpGet]
-    [Authorize(Roles = FcgRoles.Admin)]
+    [Authorize(Policy = FcgPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(PagedResponse<UserResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<UserResponse>>> GetUsers([FromQuery] UserListQuery query, CancellationToken cancellationToken)
     {
@@ -76,7 +67,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Get user by id (Admin only).</summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = FcgRoles.Admin)]
+    [Authorize(Policy = FcgPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserResponse>> GetUserById(Guid id, CancellationToken cancellationToken)
@@ -89,7 +80,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Update user by id (Admin only).</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = FcgRoles.Admin)]
+    [Authorize(Policy = FcgPolicies.RequireAdmin)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -114,7 +105,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Delete user by id (Admin only).</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = FcgRoles.Admin)]
+    [Authorize(Policy = FcgPolicies.RequireAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid id, CancellationToken cancellationToken)
@@ -131,13 +122,13 @@ public class UsersController : ControllerBase
 
     /// <summary>Get current user profile.</summary>
     [HttpGet("me")]
-    [Authorize]
+    [Authorize(Policy = FcgPolicies.RequireAuthenticatedUser)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserResponse>> GetMe(CancellationToken cancellationToken)
     {
-        var userId = CurrentUserId;
+        var userId = User.GetUserId();
         if (userId == null)
             return Unauthorized();
 
@@ -149,14 +140,14 @@ public class UsersController : ControllerBase
 
     /// <summary>Update current user profile (name, avatar, bio only).</summary>
     [HttpPut("me")]
-    [Authorize]
+    [Authorize(Policy = FcgPolicies.RequireAuthenticatedUser)]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserResponse>> UpdateMe([FromBody] UpdateMeRequest request, CancellationToken cancellationToken)
     {
-        var userId = CurrentUserId;
+        var userId = User.GetUserId();
         if (userId == null)
             return Unauthorized();
         if (!ModelState.IsValid)
@@ -171,13 +162,13 @@ public class UsersController : ControllerBase
 
     /// <summary>Delete current user account (soft delete).</summary>
     [HttpDelete("me")]
-    [Authorize]
+    [Authorize(Policy = FcgPolicies.RequireAuthenticatedUser)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteMe(CancellationToken cancellationToken)
     {
-        var userId = CurrentUserId;
+        var userId = User.GetUserId();
         if (userId == null)
             return Unauthorized();
 

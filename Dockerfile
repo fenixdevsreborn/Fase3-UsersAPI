@@ -7,13 +7,9 @@ COPY Fase3-UsersAPI/src/Fcg.Users.Application/Fcg.Users.Application.csproj Fase3
 COPY Fase3-UsersAPI/src/Fcg.Users.Contracts/Fcg.Users.Contracts.csproj Fase3-UsersAPI/src/Fcg.Users.Contracts/
 COPY Fase3-UsersAPI/src/Fcg.Users.Domain/Fcg.Users.Domain.csproj Fase3-UsersAPI/src/Fcg.Users.Domain/
 COPY Fase3-UsersAPI/src/Fcg.Users.Infrastructure/Fcg.Users.Infrastructure.csproj Fase3-UsersAPI/src/Fcg.Users.Infrastructure/
-COPY Fase3-Shared/src/Fcg.Shared.Auth/Fcg.Shared.Auth.csproj Fase3-Shared/src/Fcg.Shared.Auth/
-COPY Fase3-Shared/src/Fcg.Shared.Observability.AspNetCore/Fcg.Shared.Observability.AspNetCore.csproj Fase3-Shared/src/Fcg.Shared.Observability.AspNetCore/
-COPY Fase3-Shared/src/Fcg.Shared.Observability/Fcg.Shared.Observability.csproj Fase3-Shared/src/Fcg.Shared.Observability/
 
 RUN dotnet restore Fase3-UsersAPI/src/Fcg.Users.Api/Fcg.Users.Api.csproj
 COPY Fase3-UsersAPI/src Fase3-UsersAPI/src
-COPY Fase3-Shared Fase3-Shared
 RUN dotnet publish Fase3-UsersAPI/src/Fcg.Users.Api/Fcg.Users.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime

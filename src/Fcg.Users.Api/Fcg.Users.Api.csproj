@@ -18,11 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Fcg.Users.Application\Fcg.Users.Application.csproj" />
     <ProjectReference Include="..\Fcg.Users.Infrastructure\Fcg.Users.Infrastructure.csproj" />
     <ProjectReference Include="..\Fcg.Users.Contracts\Fcg.Users.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\Fase3-Shared\src\Fcg.Shared.Auth\Fcg.Shared.Auth.csproj" />
-    <ProjectReference Include="..\..\..\Fase3-Shared\src\Fcg.Shared.Observability.AspNetCore\Fcg.Shared.Observability.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

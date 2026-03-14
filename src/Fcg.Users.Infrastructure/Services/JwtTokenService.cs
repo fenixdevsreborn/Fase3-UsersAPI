@@ -1,8 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Fcg.Shared.Auth;
 using Fcg.Users.Application.Services;
+using Fcg.Users.Contracts.Auth;
 using Fcg.Users.Domain.Entities;
 using Fcg.Users.Domain.Enums;
 using Microsoft.Extensions.Options;
@@ -51,13 +51,4 @@ public class JwtTokenService : ITokenService
     }
 
     public int GetExpirationSeconds() => _options.ExpirationSeconds;
-}
-
-public class JwtOptions
-{
-    public const string SectionName = "Jwt";
-    public string Issuer { get; set; } = "Fcg.Users.Api";
-    public string Audience { get; set; } = "fcg-cloud-platform";
-    public string SigningKey { get; set; } = string.Empty;
-    public int ExpirationSeconds { get; set; } = 3600;
 }
