@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Publish image — FCG Cloud Platform (microsserviço)
 # Build da imagem Docker, push no ECR com tag "latest" apenas.
-# Repositório ECR por serviço (ex.: fcg/fase03-users-api) para identificar a origem.
+# Repositório ECR no formato {nome_repo}/service_name (ex.: fcg/fase03/users-api).
 # ------------------------------------------------------------------------------
 
 name: Publish image
@@ -49,9 +49,9 @@ jobs:
         id: meta
         run: |
           REGISTRY="${{ steps.ecr.outputs.registry }}"
-          REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03-users-api' }}"
+          REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03' }}"
           echo "tags=${REGISTRY}/${REPO}:latest" >> $GITHUB_OUTPUT
-          echo "image_tag=latest" >> $GITHUB_OUTPUT
+          echo "image_tag=users-api:latest" >> $GITHUB_OUTPUT
 
       # 5. Build da imagem (Dockerfile na raiz do repo)
       - name: Build image
