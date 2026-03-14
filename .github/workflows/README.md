@@ -48,7 +48,7 @@ Configure em **Settings → Secrets and variables → Actions**.
 | Variable | Obrigatório | Default | Exemplo | Uso |
 |----------|-------------|---------|---------|-----|
 | `AWS_REGION` | Não | **`us-east-1`** (Virginia) | `us-east-1` | Região do ECR e da role. Se não definida, usa Virginia. |
-| `ECR_REPOSITORY_NAME` | Não | **`fcg/Fase03`** | `fcg/Fase03` ou `fcg-prod-users-api` | Nome do repositório no ECR. Se não definida, usa `fcg/Fase03`. |
+| `ECR_REPOSITORY_NAME` | Não | **`fcg/fase03`** | `fcg/fase03` ou `fcg-prod-users-api` | Nome do repositório no ECR. Se não definida, usa `fcg/fase03`. |
 | `ORCHESTRATOR_REPO` | Sim (para trigger) | — | `minha-org/Fase3-InfraOrchestrador` | Repositório que recebe o `repository_dispatch` (formato `owner/repo`). |
 | `SERVICE_NAME` | Não | `users-api` | `users-api` | Nome do serviço no payload; deve coincidir com o esperado pelo orquestrador. |
 | `ENVIRONMENT` | Não | `prod` | `prod` | Ambiente; usado no payload e para decidir se faz push da tag `latest`. |
@@ -60,7 +60,7 @@ Todos os workflows de **Publish image** (UsersAPI, GamesAPI, PaymentsAPI, Notifi
 | Variável | Valor padrão | Observação |
 |----------|--------------|------------|
 | **AWS_REGION** | `us-east-1` | Região da AWS (Virginia). O ECR e a IAM Role devem estar nessa região. |
-| **ECR_REPOSITORY_NAME** | `fcg/Fase03` | Nome do repositório no ECR. A imagem é enviada para `registry/fcg/Fase03:tag`. |
+| **ECR_REPOSITORY_NAME** | `fcg/fase03` | Nome do repositório no ECR. A imagem é enviada para `registry/fcg/fase03:tag`. |
 
 Para usar outro repositório ou outra região, defina a variable no repositório em **Settings → Secrets and variables → Actions**.
 
@@ -69,7 +69,7 @@ Para usar outro repositório ou outra região, defina a variable no repositório
 ## 3. Como personalizar o nome do serviço e o repositório ECR
 
 - **Nome do serviço:** defina a variable **`SERVICE_NAME`** (ex.: `users-api`, `games-api`, `payments-api`, `notification-lambda`). O mesmo valor é enviado no payload para o orquestrador. Se não definir, o default no workflow é `users-api`.
-- **Repositório ECR:** defina a variable **`ECR_REPOSITORY_NAME`** para usar um repositório diferente do padrão `fcg/Fase03`. O valor deve ser o **nome completo** do repositório no ECR (ex.: `fcg-prod-users-api`). Esse nome costuma ser gerado pelo Terraform no orquestrador. Consulte os outputs do Terraform para obter o nome exato.
+- **Repositório ECR:** defina a variable **`ECR_REPOSITORY_NAME`** para usar um repositório diferente do padrão `fcg/fase03`. O valor deve ser o **nome completo** do repositório no ECR (ex.: `fcg-prod-users-api`). Esse nome costuma ser gerado pelo Terraform no orquestrador. Consulte os outputs do Terraform para obter o nome exato.
 
 Para outro microsserviço (ex.: Games API) no mesmo estilo de repo: copie os dois workflows, ajuste a solution no `ci.yml` (ex.: `Fcg.Games.slnx`) e defina `SERVICE_NAME` e, se necessário, `ECR_REPOSITORY_NAME` para esse serviço.
 
