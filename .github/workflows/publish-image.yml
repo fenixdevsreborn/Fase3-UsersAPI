@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Publish image — FCG Cloud Platform (microsserviço)
-# Build da imagem Docker, push no ECR (tag = SHA), opcional latest, e
-# repository_dispatch para o Fase3-InfraOrchestrador.
+# Build da imagem Docker, push no ECR com tag "latest" apenas.
+# Repositório ECR por serviço (ex.: fcg/fase03-users-api) para identificar a origem.
 # ------------------------------------------------------------------------------
 
 name: Publish image
@@ -25,7 +25,7 @@ jobs:
 
     outputs:
       image_uri: ${{ steps.meta.outputs.tags }}
-      image_tag: ${{ steps.meta.outputs.sha_tag }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       # 1. Checkout do repositório
@@ -44,30 +44,22 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Definir tag da imagem (SHA curto) e URI completa para o payload
+      # 4. Definir repositório por serviço (identificável no registro) e tag "latest"
       - name: Docker meta (tags)
         id: meta
         run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           REGISTRY="${{ steps.ecr.outputs.registry }}"
-          REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03' }}"
-          echo "tags=${REGISTRY}/${REPO}:${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "sha_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03-users-api' }}"
+          echo "tags=${REGISTRY}/${REPO}:latest" >> $GITHUB_OUTPUT
+          echo "image_tag=latest" >> $GITHUB_OUTPUT
 
       # 5. Build da imagem (Dockerfile na raiz do repo)
       - name: Build image
         run: docker build -f Dockerfile -t ${{ steps.meta.outputs.tags }} .
 
-      # 6. Push da imagem com tag SHA
+      # 6. Push da imagem com tag latest
       - name: Push image
         run: docker push ${{ steps.meta.outputs.tags }}
-
-      # 7. Opcional: push da tag latest em ambiente prod (facilita rollback "latest")
-      - name: Push latest (production only)
-        if: vars.ENVIRONMENT == 'prod'
-        run: |
-          docker tag ${{ steps.meta.outputs.tags }} ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03' }}:latest
-          docker push ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || 'fcg/fase03' }}:latest
 
   # 8. Disparar o orquestrador para atualizar a infra com a nova imagem
   trigger-orchestrator:

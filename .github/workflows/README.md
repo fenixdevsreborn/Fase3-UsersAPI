@@ -24,11 +24,10 @@ Este repositório usa dois workflows: **CI** (restore, build, test) e **Publish 
 | Checkout | Baixa o código. |
 | Configure AWS (OIDC) | Assume a IAM Role via OIDC (sem access key); necessário `id-token: write`. |
 | Login to ECR | Autentica no Amazon ECR; o registry fica em `steps.ecr.outputs.registry`. |
-| Docker meta | Monta a tag (SHA curto) e a URI completa da imagem (registry/repo:tag). |
+| Docker meta | Define repositório por serviço (ex.: `fcg/fase03-users-api`) e tag **latest**; monta a URI completa (registry/repo:latest). |
 | Build image | `docker build -f Dockerfile -t <uri>` no contexto da raiz do repo. |
-| Push image | `docker push` da imagem com tag SHA. |
-| Push latest | Se `ENVIRONMENT == 'prod'`, faz push também da tag `latest`. |
-| Trigger orchestrator | Envia `repository_dispatch` (evento `deploy-request`) para o repo do orquestrador com o payload (service_name, image_tag, image_uri, commit_sha, environment). |
+| Push image | `docker push` da imagem com tag **latest** apenas. |
+| Trigger orchestrator | Envia `repository_dispatch` (evento `deploy-request`) para o repo do orquestrador com o payload (service_name, image_tag=latest, image_uri, commit_sha, environment). |
 
 ---
 
@@ -48,28 +47,30 @@ Configure em **Settings → Secrets and variables → Actions**.
 | Variable | Obrigatório | Default | Exemplo | Uso |
 |----------|-------------|---------|---------|-----|
 | `AWS_REGION` | Não | **`us-east-1`** (Virginia) | `us-east-1` | Região do ECR e da role. Se não definida, usa Virginia. |
-| `ECR_REPOSITORY_NAME` | Não | **`fcg/fase03`** | `fcg/fase03` ou `fcg-prod-users-api` | Nome do repositório no ECR. Se não definida, usa `fcg/fase03`. |
+| `ECR_REPOSITORY_NAME` | Não | **`fcg/fase03-users-api`** (Users API) | `fcg/fase03-users-api` ou `fcg-prod-users-api` | Nome do repositório no ECR; por padrão cada serviço usa um repo próprio para identificar a origem no registro. |
 | `ORCHESTRATOR_REPO` | Sim (para trigger) | — | `minha-org/Fase3-InfraOrchestrador` | Repositório que recebe o `repository_dispatch` (formato `owner/repo`). |
 | `SERVICE_NAME` | Não | `users-api` | `users-api` | Nome do serviço no payload; deve coincidir com o esperado pelo orquestrador. |
-| `ENVIRONMENT` | Não | `prod` | `prod` | Ambiente; usado no payload e para decidir se faz push da tag `latest`. |
+| `ENVIRONMENT` | Não | `prod` | `prod` | Ambiente; usado no payload enviado ao orquestrador. |
 
 ### Valores padrão (ECR e região)
 
-Todos os workflows de **Publish image** (UsersAPI, GamesAPI, PaymentsAPI, NotificationLambda) usam os mesmos padrões quando as variables não estão definidas:
+Cada serviço usa **um repositório ECR próprio** por padrão e apenas a tag **latest**:
 
-| Variável | Valor padrão | Observação |
-|----------|--------------|------------|
-| **AWS_REGION** | `us-east-1` | Região da AWS (Virginia). O ECR e a IAM Role devem estar nessa região. |
-| **ECR_REPOSITORY_NAME** | `fcg/fase03` | Nome do repositório no ECR. A imagem é enviada para `registry/fcg/fase03:tag`. |
+| Serviço | ECR_REPOSITORY_NAME (default) | Tag |
+|---------|------------------------------|-----|
+| Users API | `fcg/fase03-users-api` | `latest` |
+| Games API | `fcg/fase03-games-api` | `latest` |
+| Payments API | `fcg/fase03-payments-api` | `latest` |
+| Notification Lambda | `fcg/fase03-notification-lambda` | `latest` |
 
-Para usar outro repositório ou outra região, defina a variable no repositório em **Settings → Secrets and variables → Actions**.
+Assim, no registro de imagens fica claro de qual serviço é cada repositório. Para usar o nome gerado pelo Terraform (ex.: `fcg-prod-users-api`), defina a variable **ECR_REPOSITORY_NAME** em cada repositório em **Settings → Secrets and variables → Actions**.
 
 ---
 
 ## 3. Como personalizar o nome do serviço e o repositório ECR
 
 - **Nome do serviço:** defina a variable **`SERVICE_NAME`** (ex.: `users-api`, `games-api`, `payments-api`, `notification-lambda`). O mesmo valor é enviado no payload para o orquestrador. Se não definir, o default no workflow é `users-api`.
-- **Repositório ECR:** defina a variable **`ECR_REPOSITORY_NAME`** para usar um repositório diferente do padrão `fcg/fase03`. O valor deve ser o **nome completo** do repositório no ECR (ex.: `fcg-prod-users-api`). Esse nome costuma ser gerado pelo Terraform no orquestrador. Consulte os outputs do Terraform para obter o nome exato.
+- **Repositório ECR:** por padrão cada serviço usa um repositório próprio (ex.: `fcg/fase03-users-api`). Para usar o nome criado pelo Terraform (ex.: `fcg-prod-users-api`), defina a variable **`ECR_REPOSITORY_NAME`** no repositório do serviço. Consulte o output `ecr_repository_urls` do Terraform para o nome exato.
 
 Para outro microsserviço (ex.: Games API) no mesmo estilo de repo: copie os dois workflows, ajuste a solution no `ci.yml` (ex.: `Fcg.Games.slnx`) e defina `SERVICE_NAME` e, se necessário, `ECR_REPOSITORY_NAME` para esse serviço.
 
@@ -93,15 +94,15 @@ Exemplo de **client_payload**:
 ```json
 {
   "service_name": "users-api",
-  "image_tag": "a1b2c3d",
-  "image_uri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fcg-prod-users-api:a1b2c3d",
+  "image_tag": "latest",
+  "image_uri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/fcg/fase03-users-api:latest",
   "commit_sha": "a1b2c3d4e5f6789012345678901234567890abcd",
   "environment": "prod"
 }
 ```
 
 - **service_name:** identificador do serviço no orquestrador (deve bater com a variável Terraform, ex.: users-api).
-- **image_tag:** tag da imagem que foi publicada (ex.: 7 primeiros caracteres do commit).
+- **image_tag:** tag da imagem publicada (atualmente sempre **latest**).
 - **image_uri:** URI completa da imagem no ECR (registry/repositório:tag).
 - **commit_sha:** SHA completo do commit que originou o build.
 - **environment:** ambiente (prod, staging, demo) para o qual a imagem foi publicada / será implantada.
