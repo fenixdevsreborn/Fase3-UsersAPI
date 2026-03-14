@@ -7,4 +7,4 @@ Estes workflows são do **projeto Users API** e devem rodar quando este projeto 
 
 Se o repositório for um **monorepo** (vários projetos na mesma raiz), o GitHub Actions só executa workflows que estejam em **`.github/workflows` na raiz do repositório**. Nesse caso, copie estes arquivos para a raiz (ex.: `.github/workflows/ci-users-api.yml`) e ajuste os caminhos (ex.: `Fase3-UsersAPI/Fcg.Users.slnx`).
 
-Variables e secrets necessários para `publish-image.yml`: ver `docs/CI-CD.md` na raiz do repositório (se existir) ou a documentação do `Fase3-InfraOrchestrador`.
+**Variables e secrets** para `publish-image.yml`: ver `.github/workflows/README.md` (detalhes completos). **Valores padrão:** `AWS_REGION=us-east-1`, `ECR_REPOSITORY_NAME=fcg/Fase03` quando não definidos.

@@ -50,7 +50,7 @@ jobs:
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           REGISTRY="${{ steps.ecr.outputs.registry }}"
-          REPO="${{ vars.ECR_REPOSITORY_NAME || env.SERVICE_NAME }}"
+          REPO="${{ vars.ECR_REPOSITORY_NAME || 'fcg/Fase03' }}"
           echo "tags=${REGISTRY}/${REPO}:${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "sha_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
 
@@ -66,8 +66,8 @@ jobs:
       - name: Push latest (production only)
         if: vars.ENVIRONMENT == 'prod'
         run: |
-          docker tag ${{ steps.meta.outputs.tags }} ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || env.SERVICE_NAME }}:latest
-          docker push ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || env.SERVICE_NAME }}:latest
+          docker tag ${{ steps.meta.outputs.tags }} ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || 'fcg/Fase03' }}:latest
+          docker push ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME || 'fcg/Fase03' }}:latest
 
   # 8. Disparar o orquestrador para atualizar a infra com a nova imagem
   trigger-orchestrator:
