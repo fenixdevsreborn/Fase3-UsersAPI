@@ -22,4 +22,21 @@ public class UserRepository
   {
     return await _context.LoadAsync<Users>(id);
   }
+  public async Task Update(Users user)
+  {
+    await _context.SaveAsync(user);
+  }
+
+  public async Task Disable(string id)
+  {
+    var user = await _context.LoadAsync<Users>(id);
+
+    if (user == null)
+      return;
+
+    user.Active = false;
+    user.UpdatedAt = DateTime.UtcNow;
+
+    await _context.SaveAsync(user);
+  }
 }

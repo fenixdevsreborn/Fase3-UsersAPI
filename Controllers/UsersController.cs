@@ -47,4 +47,33 @@ public class UsersController : ControllerBase
 
     return Ok(user);
   }
+
+  [HttpPut("me")]
+  public async Task<IActionResult> Update([FromBody] UpdateUserRequest request)
+  {
+    var userId = User.FindFirst("sub")?.Value;
+
+    if (userId == null)
+      return Unauthorized();
+
+    var user = await _service.Update(userId, request);
+
+    if (user == null)
+      return NotFound();
+
+    return Ok(user);
+  }
+
+  [HttpDelete("me")]
+  public async Task<IActionResult> Delete()
+  {
+    var userId = User.FindFirst("sub")?.Value;
+
+    if (userId == null)
+      return Unauthorized();
+
+    await _service.Disable(userId);
+
+    return NoContent();
+  }
 }

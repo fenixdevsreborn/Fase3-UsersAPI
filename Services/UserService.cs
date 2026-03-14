@@ -60,13 +60,13 @@ public class UserService
       UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
       Username = request.Nickname,
       UserAttributes = new List<AttributeType>
-    {
-        new AttributeType
-        {
-            Name = "email_verified",
-            Value = "true"
-        }
-    }
+      {
+          new AttributeType
+          {
+              Name = "email_verified",
+              Value = "true"
+          }
+      }
     });
 
     var cognitoSub = response.UserSub;
@@ -81,20 +81,6 @@ public class UserService
 
     await _repository.Create(user);
 
-    // =============================
-    // EVENTO DE USUÁRIO CRIADO
-    // =============================
-
-    var userEvent = new UserRegisteredEvent
-    {
-      UserId = user.Id,
-      Email = user.Email
-    };
-
-    // =============================
-    // EVENTO DE EMAIL
-    // =============================
-
     var emailEvent = new EmailNotificationEvent
     {
       Title = "Bem-vindo à Game Store",
@@ -105,8 +91,6 @@ public class UserService
 
     var notificationQueue =
         Environment.GetEnvironmentVariable("NOTIFICATION_QUEUE_URL");
-
-    await _publisher.PublishAsync(notificationQueue, userEvent);
 
     await _publisher.PublishAsync(notificationQueue, emailEvent);
 
@@ -141,5 +125,26 @@ public class UserService
   public async Task<Users?> GetById(string id)
   {
     return await _repository.GetById(id);
+  }
+
+  public async Task<Users?> Update(string id, UpdateUserRequest request)
+  {
+    var user = await _repository.GetById(id);
+
+    if (user == null)
+      return null;
+
+    user.Name = request.Name;
+    user.Nickname = request.Nickname;
+    user.UpdatedAt = DateTime.UtcNow;
+
+    await _repository.Update(user);
+
+    return user;
+  }
+
+  public async Task Disable(string id)
+  {
+    await _repository.Disable(id);
   }
 }
