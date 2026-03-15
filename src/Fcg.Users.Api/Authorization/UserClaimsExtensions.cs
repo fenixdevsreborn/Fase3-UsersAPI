@@ -15,6 +15,9 @@ public static class UserClaimsExtensions
     public static string? GetEmail(this ClaimsPrincipal user) =>
         user.FindFirst(FcgClaimTypes.Email)?.Value;
 
+    public static string? GetUsername(this ClaimsPrincipal user) =>
+        user.FindFirst(FcgClaimTypes.Username)?.Value;
+
     public static string? GetName(this ClaimsPrincipal user) =>
         user.FindFirst(FcgClaimTypes.Name)?.Value;
 

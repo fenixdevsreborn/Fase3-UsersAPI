@@ -4,6 +4,7 @@ using Fcg.Users.Domain.Repositories;
 using Fcg.Users.Infrastructure.Authentication;
 using Fcg.Users.Infrastructure.Persistence;
 using Fcg.Users.Infrastructure.Repositories;
+using Fcg.Users.Infrastructure.Seeders;
 using Fcg.Users.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -34,7 +35,6 @@ public static class ServiceCollectionExtensions
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<JwtSigningOptions>(configuration.GetSection(JwtSigningOptions.SectionName));
-        services.Configure<BootstrapOptions>(configuration.GetSection(BootstrapOptions.SectionName));
 
         RegisterRsaKeyProvider(services, configuration);
         services.AddSingleton<IJwksService, JwksService>();
@@ -44,6 +44,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+
+        services.AddScoped<IDataSeeder, FirstAdminSeeder>();
+        services.AddScoped<ISeederRunner, SeederRunner>();
 
         return services;
     }
@@ -69,13 +72,4 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException($"Jwt:Signing:Provider '{provider}' is not supported. Use File, Environment, AwsParameterStore, or AwsSecretsManager.");
         }
     }
-}
-
-public class BootstrapOptions
-{
-    public const string SectionName = "Bootstrap";
-    public bool CreateAdminIfNone { get; set; } = true;
-    public string AdminEmail { get; set; } = "admin@fcg.local";
-    public string AdminPassword { get; set; } = "ChangeMe@123";
-    public string AdminName { get; set; } = "System Admin";
 }

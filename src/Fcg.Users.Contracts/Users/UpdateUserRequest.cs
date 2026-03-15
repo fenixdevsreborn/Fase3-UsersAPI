@@ -7,6 +7,9 @@ public class UpdateUserRequest
     [MinLength(1), MaxLength(200)]
     public string? Name { get; set; }
 
+    [MinLength(4), MaxLength(64)]
+    public string? Username { get; set; }
+
     [EmailAddress, MaxLength(256)]
     public string? Email { get; set; }
 

@@ -4,9 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>68678526-c91a-47db-8343-af8c4f8ffcf7</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.1" />
@@ -32,6 +37,7 @@
     <ProjectReference Include="..\Fcg.Users.Application\Fcg.Users.Application.csproj" />
     <ProjectReference Include="..\Fcg.Users.Infrastructure\Fcg.Users.Infrastructure.csproj" />
     <ProjectReference Include="..\Fcg.Users.Contracts\Fcg.Users.Contracts.csproj" />
+    <ProjectReference Include="..\Fcg.Users.ServiceDefaults\Fcg.Users.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

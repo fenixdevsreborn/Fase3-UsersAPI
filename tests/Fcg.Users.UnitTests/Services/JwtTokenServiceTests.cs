@@ -40,6 +40,7 @@ public class JwtTokenServiceTests
         var user = new User
         {
             Id = Guid.NewGuid(),
+            Username = "user1",
             Email = "u@test.com",
             Name = "User",
             Role = UserRole.User,
@@ -66,6 +67,7 @@ public class JwtTokenServiceTests
         var user = new User
         {
             Id = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+            Username = "testadmin",
             Email = "a@b.com",
             Name = "Test",
             Role = UserRole.Admin,
@@ -78,6 +80,7 @@ public class JwtTokenServiceTests
 
         Assert.Equal(user.Id.ToString(), jwt.Claims.First(c => c.Type == "sub").Value);
         Assert.Equal("a@b.com", jwt.Claims.First(c => c.Type == "email").Value);
+        Assert.Equal("testadmin", jwt.Claims.First(c => c.Type == "username").Value);
         Assert.Equal("Test", jwt.Claims.First(c => c.Type == "name").Value);
         Assert.Equal("admin", jwt.Claims.First(c => c.Type == "role").Value);
         Assert.NotNull(jwt.Claims.FirstOrDefault(c => c.Type == "scope"));

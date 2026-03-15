@@ -9,11 +9,15 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(Guid id, bool includeDeleted = false, CancellationToken cancellationToken = default);
     Task<User?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, bool includeDeleted = false, CancellationToken cancellationToken = default);
+    Task<User?> GetByUsernameAsync(string username, bool includeDeleted = false, CancellationToken cancellationToken = default);
+    Task<User?> GetByEmailOrUsernameAsync(string emailOrUsername, bool includeDeleted = false, CancellationToken cancellationToken = default);
     Task<bool> ExistsByEmailAsync(string email, Guid? excludeUserId = null, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByUsernameAsync(string username, Guid? excludeUserId = null, CancellationToken cancellationToken = default);
     Task<PagedResult<User>> GetPagedAsync(
         int pageNumber,
         int pageSize,
         string? name = null,
+        string? username = null,
         string? email = null,
         UserRole? role = null,
         bool? isActive = null,

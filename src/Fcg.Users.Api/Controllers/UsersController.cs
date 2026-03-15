@@ -43,7 +43,7 @@ public class UsersController : ControllerBase
         {
             var user = await _userService.CreateUserAsync(request, cancellationToken);
             _meters.RecordUserCreated();
-            _logger.LogInformation("User created: {Email} by admin", user.Email);
+            _logger.LogInformation("User created: {Username} ({Email}) by admin", user.Username, user.Email);
             return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
         }
         catch (ConflictException ex)

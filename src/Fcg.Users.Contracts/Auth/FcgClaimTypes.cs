@@ -9,6 +9,9 @@ public static class FcgClaimTypes
     /// <summary>Email address.</summary>
     public const string Email = "email";
 
+    /// <summary>Username (unique, case-insensitive).</summary>
+    public const string Username = "username";
+
     /// <summary>Display name.</summary>
     public const string Name = "name";
 

@@ -31,15 +31,44 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email, bool includeDeleted = false, CancellationToken cancellationToken = default)
     {
+        var normalized = email.Trim().ToLowerInvariant();
         var query = _db.Users.AsNoTracking();
         if (includeDeleted)
             query = query.IgnoreQueryFilters();
-        return await query.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+        return await query.FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken);
+    }
+
+    public async Task<User?> GetByUsernameAsync(string username, bool includeDeleted = false, CancellationToken cancellationToken = default)
+    {
+        var normalized = username.Trim().ToLowerInvariant();
+        var query = _db.Users.AsNoTracking();
+        if (includeDeleted)
+            query = query.IgnoreQueryFilters();
+        return await query.FirstOrDefaultAsync(u => u.Username == normalized, cancellationToken);
+    }
+
+    public async Task<User?> GetByEmailOrUsernameAsync(string emailOrUsername, bool includeDeleted = false, CancellationToken cancellationToken = default)
+    {
+        var normalized = emailOrUsername.Trim().ToLowerInvariant();
+        var query = _db.Users.AsNoTracking();
+        if (includeDeleted)
+            query = query.IgnoreQueryFilters();
+        return await query.FirstOrDefaultAsync(u => u.Email == normalized || u.Username == normalized, cancellationToken);
     }
 
     public async Task<bool> ExistsByEmailAsync(string email, Guid? excludeUserId = null, CancellationToken cancellationToken = default)
     {
-        var query = _db.Users.IgnoreQueryFilters().Where(u => u.Email == email);
+        var normalized = email.Trim().ToLowerInvariant();
+        var query = _db.Users.IgnoreQueryFilters().Where(u => u.Email == normalized);
+        if (excludeUserId.HasValue)
+            query = query.Where(u => u.Id != excludeUserId.Value);
+        return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<bool> ExistsByUsernameAsync(string username, Guid? excludeUserId = null, CancellationToken cancellationToken = default)
+    {
+        var normalized = username.Trim().ToLowerInvariant();
+        var query = _db.Users.IgnoreQueryFilters().Where(u => u.Username == normalized);
         if (excludeUserId.HasValue)
             query = query.Where(u => u.Id != excludeUserId.Value);
         return await query.AnyAsync(cancellationToken);
@@ -49,6 +78,7 @@ public class UserRepository : IUserRepository
         int pageNumber,
         int pageSize,
         string? name = null,
+        string? username = null,
         string? email = null,
         UserRole? role = null,
         bool? isActive = null,
@@ -61,6 +91,8 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(name))
             query = query.Where(u => u.Name.ToLower().Contains(name.ToLower()));
+        if (!string.IsNullOrWhiteSpace(username))
+            query = query.Where(u => u.Username.ToLower().Contains(username.ToLower()));
         if (!string.IsNullOrWhiteSpace(email))
             query = query.Where(u => u.Email.ToLower().Contains(email.ToLower()));
         if (role.HasValue)

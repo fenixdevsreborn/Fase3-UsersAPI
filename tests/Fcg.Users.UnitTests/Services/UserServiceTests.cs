@@ -18,10 +18,11 @@ public class UserServiceTests
     [Fact]
     public async Task CreateUserAsync_WhenEmailExists_ThrowsConflict()
     {
+        _userRepo.ExistsByUsernameAsync(Arg.Any<string>(), null, Arg.Any<CancellationToken>()).Returns(false);
         _userRepo.ExistsByEmailAsync(Arg.Any<string>(), null, Arg.Any<CancellationToken>()).Returns(true);
 
         var sut = new UserService(_userRepo, _hasher);
-        var request = new CreateUserRequest { Name = "A", Email = "a@b.com", Password = "password123" };
+        var request = new CreateUserRequest { Name = "A", Username = "userab", Email = "a@b.com", Password = "password123" };
 
         await Assert.ThrowsAsync<ConflictException>(() => sut.CreateUserAsync(request));
     }
@@ -46,6 +47,7 @@ public class UserServiceTests
         {
             Id = id,
             Name = "Test",
+            Username = "testuser",
             Email = "test@test.com",
             Role = UserRole.User,
             IsActive = true,
@@ -61,6 +63,7 @@ public class UserServiceTests
         Assert.NotNull(result);
         Assert.Equal(id, result.Id);
         Assert.Equal("Test", result.Name);
+        Assert.Equal("testuser", result.Username);
         Assert.Equal("user", result.Role);
     }
 }

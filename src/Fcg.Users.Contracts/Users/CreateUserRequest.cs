@@ -7,6 +7,9 @@ public class CreateUserRequest
     [Required, MinLength(1), MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 
+    [Required, MinLength(4), MaxLength(64)]
+    public string Username { get; set; } = string.Empty;
+
     [Required, EmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 

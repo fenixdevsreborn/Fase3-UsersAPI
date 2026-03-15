@@ -28,7 +28,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     {
         var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
         {
-            Email = "nobody@test.com",
+            Login = "nobody@test.com",
             Password = "wrong"
         });
 
@@ -40,7 +40,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     {
         var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
         {
-            Email = "admin@fcg.local",
+            Login = "admin@fcg.local",
             Password = "ChangeMe@123"
         });
 
@@ -51,6 +51,25 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
         Assert.Equal("Bearer", body.TokenType);
         Assert.NotNull(body.User);
         Assert.Equal("admin", body.User.Role);
+        Assert.Equal("admin", body.User.Username);
+    }
+
+    [Fact]
+    public async Task Login_WithUsername_Returns200AndToken()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
+        {
+            Login = "admin",
+            Password = "ChangeMe@123"
+        });
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(body);
+        Assert.NotEmpty(body.AccessToken);
+        Assert.NotNull(body.User);
+        Assert.Equal("admin", body.User.Username);
+        Assert.Equal("admin@fcg.local", body.User.Email);
     }
 
     [Fact]
@@ -58,7 +77,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     {
         var response = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
         {
-            Email = "admin@fcg.local",
+            Login = "admin@fcg.local",
             Password = "ChangeMe@123"
         });
         response.EnsureSuccessStatusCode();
@@ -71,6 +90,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
         Assert.Equal("RS256", token.Header.Alg);
         Assert.Contains("sub", token.Claims.Select(c => c.Type));
         Assert.Contains("email", token.Claims.Select(c => c.Type));
+        Assert.Contains("username", token.Claims.Select(c => c.Type));
         Assert.Contains("role", token.Claims.Select(c => c.Type));
         Assert.Contains("jti", token.Claims.Select(c => c.Type));
     }
@@ -91,7 +111,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     [Fact]
     public async Task Jwks_ReturnsKeysArray()
     {
-        await _client.PostAsJsonAsync("/auth/login", new LoginRequest { Email = "admin@fcg.local", Password = "ChangeMe@123" });
+        await _client.PostAsJsonAsync("/auth/login", new LoginRequest { Login = "admin@fcg.local", Password = "ChangeMe@123" });
         var response = await _client.GetAsync("/.well-known/jwks.json");
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -109,7 +129,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     {
         var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
         {
-            Email = "admin@fcg.local",
+            Login = "admin@fcg.local",
             Password = "ChangeMe@123"
         });
         loginResponse.EnsureSuccessStatusCode();
@@ -154,7 +174,7 @@ public class AuthIntegrationTests : IClassFixture<WebAppFixture>
     {
         var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest
         {
-            Email = "admin@fcg.local",
+            Login = "admin@fcg.local",
             Password = "ChangeMe@123"
         });
         loginResponse.EnsureSuccessStatusCode();

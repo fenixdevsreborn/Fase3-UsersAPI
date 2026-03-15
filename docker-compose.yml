@@ -1,0 +1,6 @@
+services:
+  fcg.users.api:
+    image: ${DOCKER_REGISTRY-}fcgusersapi
+    build:
+      context: .
+      dockerfile: src/Fcg.Users.Api/Dockerfile

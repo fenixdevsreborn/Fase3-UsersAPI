@@ -34,6 +34,7 @@ public sealed class JwtTokenService : ITokenService
         {
             new(FcgClaimTypes.Sub, user.Id.ToString()),
             new(FcgClaimTypes.Email, user.Email),
+            new(FcgClaimTypes.Username, user.Username ?? string.Empty),
             new(FcgClaimTypes.Name, user.Name ?? string.Empty),
             new(FcgClaimTypes.Role, roleValue),
             new(FcgClaimTypes.Scope, scopeValue),

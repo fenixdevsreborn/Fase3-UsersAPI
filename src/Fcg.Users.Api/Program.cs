@@ -2,18 +2,17 @@ using Fcg.Users.Api.Extensions;
 using Fcg.Users.Api.Middleware;
 using Fcg.Users.Api.Observability;
 using Fcg.Users.Api.OpenApi;
-using Fcg.Users.Domain.Entities;
-using Fcg.Users.Domain.Enums;
 using Fcg.Users.Infrastructure.Extensions;
 using Fcg.Users.Infrastructure.Persistence;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.OpenApi;
+using Fcg.Users.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
 
 builder.Configuration.AddEnvironmentVariables();
 
@@ -50,6 +49,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 if (!app.Environment.IsDevelopment() && !string.Equals(app.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase))
 {
@@ -110,36 +111,15 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-    if (!config.GetValue<bool>("UseInMemoryDatabase"))
-        await db.Database.MigrateAsync();
-
-    var bootstrap = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Bootstrap");
-    if (bootstrap.GetValue<bool>("CreateAdminIfNone"))
+        if (!config.GetValue<bool>("UseInMemoryDatabase"))
     {
-        var repo = scope.ServiceProvider.GetRequiredService<Fcg.Users.Domain.Repositories.IUserRepository>();
-        var hasher = scope.ServiceProvider.GetRequiredService<Fcg.Users.Application.Services.IPasswordHasher>();
-        var adminCount = await repo.CountAdminsAsync();
-        if (adminCount == 0)
-        {
-            var email = bootstrap["AdminEmail"] ?? "admin@fcg.local";
-            var password = bootstrap["AdminPassword"] ?? "ChangeMe@123";
-            var name = bootstrap["AdminName"] ?? "System Admin";
-            var admin = new User
-            {
-                Id = Guid.NewGuid(),
-                Name = name,
-                Email = email.Trim().ToLowerInvariant(),
-                PasswordHash = hasher.Hash(password),
-                Role = UserRole.Admin,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            await repo.AddAsync(admin);
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Bootstrap: first admin created with email {Email}", email);
-        }
+        var connectionString = config.GetConnectionString("UsersDb");
+        if (!string.IsNullOrWhiteSpace(connectionString))
+            await PostgresDatabaseEnsurer.EnsureExistsAsync(connectionString);
+        await db.Database.MigrateAsync();
     }
+
+    await scope.ServiceProvider.GetRequiredService<ISeederRunner>().RunAsync();
 }
 
 app.Run();

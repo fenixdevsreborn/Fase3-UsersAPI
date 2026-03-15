@@ -13,6 +13,9 @@ public class UserListQuery
     [MaxLength(200)]
     public string? Name { get; set; }
 
+    [MaxLength(64)]
+    public string? Username { get; set; }
+
     [MaxLength(256)]
     public string? Email { get; set; }
 

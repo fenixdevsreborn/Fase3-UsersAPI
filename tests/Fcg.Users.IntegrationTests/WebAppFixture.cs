@@ -34,11 +34,7 @@ public class WebAppFixture : WebApplicationFactory<Program>
                 ["Jwt:ExpirationSeconds"] = "3600",
                 ["Jwt:Signing:Provider"] = "File",
                 ["Jwt:Signing:CurrentKeyId"] = "test-1",
-                ["Jwt:Signing:FilePath"] = TestKeysPath,
-                ["Bootstrap:CreateAdminIfNone"] = "true",
-                ["Bootstrap:AdminEmail"] = "admin@fcg.local",
-                ["Bootstrap:AdminPassword"] = "ChangeMe@123",
-                ["Bootstrap:AdminName"] = "System Admin"
+                ["Jwt:Signing:FilePath"] = TestKeysPath
             });
         });
     }

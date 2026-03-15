@@ -22,7 +22,7 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByEmailAsync(request.Email.Trim(), includeDeleted: false, cancellationToken);
+        var user = await _userRepository.GetByEmailOrUsernameAsync(request.Login.Trim(), includeDeleted: false, cancellationToken);
         if (user == null || !user.IsActive || user.IsDeleted)
             throw new UnauthorizedException();
 
@@ -41,6 +41,7 @@ public class AuthService : IAuthService
             {
                 Id = user.Id,
                 Name = user.Name,
+                Username = user.Username,
                 Email = user.Email,
                 Role = user.Role.ToString().ToLowerInvariant()
             }

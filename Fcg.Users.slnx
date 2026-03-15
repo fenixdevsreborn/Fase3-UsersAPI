@@ -10,4 +10,9 @@
     <Project Path="tests/Fcg.Users.UnitTests/Fcg.Users.UnitTests.csproj" />
     <Project Path="tests/Fcg.Users.IntegrationTests/Fcg.Users.IntegrationTests.csproj" />
   </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="src/Fcg.Users.AppHost/Fcg.Users.AppHost.csproj" Id="d47cbfe1-3a4f-4ea0-9966-d8b5a856eaf6" />
+  <Project Path="src/Fcg.Users.ServiceDefaults/Fcg.Users.ServiceDefaults.csproj" />
 </Solution>

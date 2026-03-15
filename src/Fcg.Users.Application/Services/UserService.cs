@@ -21,6 +21,12 @@ public class UserService : IUserService
 
     public async Task<UserResponse> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
     {
+        var username = request.Username.Trim().ToLowerInvariant();
+        if (username.Length < 4)
+            throw new ConflictException("Username must be at least 4 characters.");
+        if (await _userRepository.ExistsByUsernameAsync(username, null, cancellationToken))
+            throw new ConflictException($"A user with username '{request.Username}' already exists.");
+
         var email = request.Email.Trim().ToLowerInvariant();
         if (await _userRepository.ExistsByEmailAsync(email, null, cancellationToken))
             throw new ConflictException($"A user with email '{request.Email}' already exists.");
@@ -30,6 +36,7 @@ public class UserService : IUserService
         {
             Id = Guid.NewGuid(),
             Name = request.Name.Trim(),
+            Username = username,
             Email = email,
             PasswordHash = _passwordHasher.Hash(request.Password),
             Role = role,
@@ -56,6 +63,7 @@ public class UserService : IUserService
             pageNumber,
             pageSize,
             name: string.IsNullOrWhiteSpace(query.Name) ? null : query.Name.Trim(),
+            username: string.IsNullOrWhiteSpace(query.Username) ? null : query.Username.Trim(),
             email: string.IsNullOrWhiteSpace(query.Email) ? null : query.Email.Trim(),
             role: roleFilter,
             isActive: query.IsActive,
@@ -86,6 +94,15 @@ public class UserService : IUserService
         if (user == null) return null;
 
         if (request.Name != null) user.Name = request.Name.Trim();
+        if (request.Username != null)
+        {
+            var username = request.Username.Trim().ToLowerInvariant();
+            if (username.Length < 4)
+                throw new ConflictException("Username must be at least 4 characters.");
+            if (await _userRepository.ExistsByUsernameAsync(username, id, cancellationToken))
+                throw new ConflictException($"A user with username '{request.Username}' already exists.");
+            user.Username = username;
+        }
         if (request.Email != null)
         {
             var email = request.Email.Trim().ToLowerInvariant();
@@ -152,6 +169,7 @@ public class UserService : IUserService
         {
             Id = user.Id,
             Name = user.Name,
+            Username = user.Username,
             Email = user.Email,
             Role = user.Role.ToString().ToLowerInvariant(),
             IsActive = user.IsActive,

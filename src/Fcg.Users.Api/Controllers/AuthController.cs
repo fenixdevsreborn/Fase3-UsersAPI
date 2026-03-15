@@ -29,13 +29,13 @@ public class AuthController : ControllerBase
         try
         {
             var response = await _authService.LoginAsync(request, cancellationToken);
-            _logger.LogInformation("User logged in: {Email}", request.Email);
+            _logger.LogInformation("User logged in: {Login}", request.Login);
             return Ok(response);
         }
         catch (Fcg.Users.Application.Exceptions.UnauthorizedException)
         {
-            _logger.LogWarning("Failed login attempt for {Email}", request.Email);
-            return Unauthorized(new { message = "Invalid email or password." });
+            _logger.LogWarning("Failed login attempt for {Login}", request.Login);
+            return Unauthorized(new { message = "Invalid email/username or password." });
         }
     }
 }
