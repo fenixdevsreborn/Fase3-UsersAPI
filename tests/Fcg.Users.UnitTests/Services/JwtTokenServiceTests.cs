@@ -6,7 +6,7 @@ using Fcg.Users.Domain.Enums;
 using Fcg.Users.Infrastructure.Authentication;
 using Fcg.Users.Infrastructure.Services;
 using Microsoft.Extensions.Options;
-using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Fcg.Users.UnitTests.Services;
@@ -19,11 +19,11 @@ public class JwtTokenServiceTests
         var publicKey = RSA.Create();
         publicKey.ImportRSAPublicKey(rsa.ExportRSAPublicKey(), out _);
         var keyId = "test-kid";
-        var mock = new Mock<IRsaKeyProvider>();
-        mock.Setup(p => p.CurrentKeyId).Returns(keyId);
-        mock.Setup(p => p.GetPrivateKeyForSigning()).Returns(rsa);
-        mock.Setup(p => p.GetPublicKeysByKeyId()).Returns(new Dictionary<string, RSA> { [keyId] = publicKey });
-        return (mock.Object, publicKey);
+        var provider = Substitute.For<IRsaKeyProvider>();
+        provider.CurrentKeyId.Returns(keyId);
+        provider.GetPrivateKeyForSigning().Returns(rsa);
+        provider.GetPublicKeysByKeyId().Returns(new Dictionary<string, RSA> { [keyId] = publicKey });
+        return (provider, publicKey);
     }
 
     [Fact]
