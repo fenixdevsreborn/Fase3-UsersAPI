@@ -7,6 +7,7 @@ COPY src/Fcg.Users.Application/Fcg.Users.Application.csproj src/Fcg.Users.Applic
 COPY src/Fcg.Users.Contracts/Fcg.Users.Contracts.csproj src/Fcg.Users.Contracts/
 COPY src/Fcg.Users.Domain/Fcg.Users.Domain.csproj src/Fcg.Users.Domain/
 COPY src/Fcg.Users.Infrastructure/Fcg.Users.Infrastructure.csproj src/Fcg.Users.Infrastructure/
+COPY src/Fcg.Users.ServiceDefaults/Fcg.Users.ServiceDefaults.csproj src/Fcg.Users.ServiceDefaults/
 
 RUN dotnet restore src/Fcg.Users.Api/Fcg.Users.Api.csproj
 COPY src src
