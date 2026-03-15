@@ -1,22 +1,26 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Cryptography;
 using Fcg.Users.Application.Services;
 using Fcg.Users.Contracts.Auth;
 using Fcg.Users.Domain.Entities;
 using Fcg.Users.Domain.Enums;
+using Fcg.Users.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Fcg.Users.Infrastructure.Services;
 
-public class JwtTokenService : ITokenService
+/// <summary>Generates JWT access tokens with RS256 and kid header. Uses IRsaKeyProvider for signing key.</summary>
+public sealed class JwtTokenService : ITokenService
 {
-    private readonly JwtOptions _options;
+    private readonly JwtOptions _jwtOptions;
+    private readonly IRsaKeyProvider _keyProvider;
 
-    public JwtTokenService(IOptions<JwtOptions> options)
+    public JwtTokenService(IOptions<JwtOptions> jwtOptions, IRsaKeyProvider keyProvider)
     {
-        _options = options.Value;
+        _jwtOptions = jwtOptions.Value;
+        _keyProvider = keyProvider;
     }
 
     public string GenerateAccessToken(User user)
@@ -36,19 +40,21 @@ public class JwtTokenService : ITokenService
             new(FcgClaimTypes.Jti, Guid.NewGuid().ToString())
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var privateKey = _keyProvider.GetPrivateKeyForSigning();
+        var securityKey = new RsaSecurityKey(privateKey) { KeyId = _keyProvider.CurrentKeyId };
+        var creds = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddSeconds(_options.ExpirationSeconds),
+            expires: DateTime.UtcNow.AddSeconds(_jwtOptions.ExpirationSeconds),
+            notBefore: DateTime.UtcNow,
             signingCredentials: creds
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public int GetExpirationSeconds() => _options.ExpirationSeconds;
+    public int GetExpirationSeconds() => _jwtOptions.ExpirationSeconds;
 }

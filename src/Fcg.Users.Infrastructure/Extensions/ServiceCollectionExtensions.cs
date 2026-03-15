@@ -1,6 +1,7 @@
 using Fcg.Users.Application.Services;
 using Fcg.Users.Contracts.Auth;
 using Fcg.Users.Domain.Repositories;
+using Fcg.Users.Infrastructure.Authentication;
 using Fcg.Users.Infrastructure.Persistence;
 using Fcg.Users.Infrastructure.Repositories;
 using Fcg.Users.Infrastructure.Services;
@@ -32,7 +33,11 @@ public static class ServiceCollectionExtensions
         }
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<JwtSigningOptions>(configuration.GetSection(JwtSigningOptions.SectionName));
         services.Configure<BootstrapOptions>(configuration.GetSection(BootstrapOptions.SectionName));
+
+        RegisterRsaKeyProvider(services, configuration);
+        services.AddSingleton<IJwksService, JwksService>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
@@ -41,6 +46,28 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
 
         return services;
+    }
+
+    private static void RegisterRsaKeyProvider(IServiceCollection services, IConfiguration configuration)
+    {
+        var provider = configuration["Jwt:Signing:Provider"] ?? configuration.GetValue<string>("Jwt:Signing:Provider") ?? "File";
+        switch (provider)
+        {
+            case "File":
+                services.AddSingleton<IRsaKeyProvider, FileRsaKeyProvider>();
+                break;
+            case "Environment":
+                services.AddSingleton<IRsaKeyProvider, EnvironmentRsaKeyProvider>();
+                break;
+            case "AwsParameterStore":
+                services.AddSingleton<IRsaKeyProvider, AwsParameterStoreRsaKeyProvider>();
+                break;
+            case "AwsSecretsManager":
+                services.AddSingleton<IRsaKeyProvider, AwsSecretsManagerRsaKeyProvider>();
+                break;
+            default:
+                throw new InvalidOperationException($"Jwt:Signing:Provider '{provider}' is not supported. Use File, Environment, AwsParameterStore, or AwsSecretsManager.");
+        }
     }
 }
 

@@ -6,8 +6,10 @@ using Fcg.Users.Domain.Entities;
 using Fcg.Users.Domain.Enums;
 using Fcg.Users.Infrastructure.Extensions;
 using Fcg.Users.Infrastructure.Persistence;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -22,6 +24,7 @@ builder.Logging.AddDebug();
 builder.Services.AddUsersInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddUsersApiAuth(builder.Configuration);
 builder.Services.AddUsersApiObservability(builder.Configuration, "Fcg.Users.Api");
+builder.Services.AddOpenTelemetryObservability(builder.Configuration);
 
 builder.Services.AddControllers();
 
@@ -41,12 +44,26 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment() && !string.Equals(app.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase))
+{
+    var issuer = app.Configuration.GetSection("Jwt:Issuer").Value?.Trim();
+    if (string.IsNullOrWhiteSpace(issuer))
+        throw new InvalidOperationException("Jwt:Issuer must be set in production (e.g. https://users-api.example.com).");
+}
+
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseFcgObservability();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment() && !string.Equals(app.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase))
+    app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -60,6 +77,25 @@ if (enableOpenApi)
     app.MapOpenApi();
     app.MapScalarApiReference(options => options.WithTitle("FCG Users API"));
 }
+
+app.MapGet("/.well-known/openid-configuration", (HttpContext ctx, IOptions<Fcg.Users.Contracts.Auth.JwtOptions> jwt) =>
+{
+    var issuer = !string.IsNullOrWhiteSpace(jwt.Value.Issuer)
+        ? jwt.Value.Issuer.TrimEnd('/')
+        : $"{ctx.Request.Scheme}://{ctx.Request.Host.Value}{ctx.Request.PathBase.Value?.TrimEnd('/') ?? ""}";
+    return Results.Ok(new
+    {
+        issuer,
+        jwks_uri = $"{issuer}/.well-known/jwks.json",
+        authorization_endpoint = $"{issuer}/auth/login",
+        response_types_supported = new[] { "token" },
+        subject_types_supported = new[] { "public" },
+        id_token_signing_alg_values_supported = new[] { "RS256" },
+        scopes_supported = new[] { "openid", "profile" },
+        token_endpoint = (string?)null,
+        userinfo_endpoint = (string?)null
+    });
+}).AllowAnonymous();
 
 app.MapGet("/api/discovery", (HttpContext ctx) => new
 {

@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fcg.Users.Api\Fcg.Users.Api.csproj" />
     <ProjectReference Include="..\..\src\Fcg.Users.Contracts\Fcg.Users.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Fcg.Users.Infrastructure\Fcg.Users.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

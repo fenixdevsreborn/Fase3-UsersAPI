@@ -1,5 +1,7 @@
 # Fase3-UsersAPI — Estrutura e pacotes
 
+Documentação de arquitetura JWT RS256, OIDC e JWKS: **[docs/JWT-RS256-OIDC-JWKS.md](JWT-RS256-OIDC-JWKS.md)**.
+
 ## Árvore final de pastas (principais)
 
 ```
@@ -7,7 +9,8 @@ Fase3-UsersAPI/
 ├── src/
 │   ├── Fcg.Users.Api/
 │   │   ├── Authentication/
-│   │   │   └── JwtBearerExtensions.cs          # AddFcgJwtBearer (validação JWT)
+│   │   │   ├── JwtBearerExtensions.cs          # AddFcgJwtBearer (validação JWT)
+│   │   │   └── JwtBearerPostConfigureOptions.cs # RS256, IssuerSigningKeyResolver por kid
 │   │   ├── Authorization/
 │   │   │   ├── AuthorizationExtensions.cs      # AddFcgAuthorization, RequireScopePolicyName
 │   │   │   ├── UserClaimsExtensions.cs        # GetUserId, GetRole, IsAdmin, HasScope
@@ -33,14 +36,23 @@ Fase3-UsersAPI/
 │   │   │   └── BearerSecuritySchemeTransformer.cs  # Scalar Bearer JWT
 │   │   ├── Controllers/
 │   │   │   ├── UsersController.cs
-│   │   │   └── AuthController.cs
+│   │   │   ├── AuthController.cs
+│   │   │   └── OpenIdDiscoveryController.cs   # GET /.well-known/jwks.json
 │   │   ├── Program.cs
 │   │   └── Program.IntegrationTests.cs
 │   ├── Fcg.Users.Application/
 │   ├── Fcg.Users.Domain/
 │   ├── Fcg.Users.Infrastructure/
+│   │   ├── Authentication/
+│   │   │   ├── IRsaKeyProvider.cs
+│   │   │   ├── FileRsaKeyProvider.cs
+│   │   │   ├── EnvironmentRsaKeyProvider.cs
+│   │   │   ├── AwsParameterStoreRsaKeyProvider.cs
+│   │   │   └── AwsSecretsManagerRsaKeyProvider.cs
 │   │   ├── Services/
-│   │   │   └── JwtTokenService.cs              # Geração JWT (usa Contracts.Auth)
+│   │   │   ├── JwtTokenService.cs              # Geração JWT RS256 (usa Contracts.Auth)
+│   │   │   ├── IJwksService.cs, JwksService.cs
+│   │   │   └── ...
 │   │   └── Extensions/
 │   └── Fcg.Users.Contracts/
 │       └── Auth/
@@ -49,6 +61,7 @@ Fase3-UsersAPI/
 │           ├── FcgScopes.cs
 │           ├── FcgPolicies.cs
 │           ├── JwtOptions.cs
+│           ├── JwtSigningOptions.cs
 │           ├── LoginRequest.cs
 │           └── LoginResponse.cs
 ├── tests/
@@ -58,8 +71,9 @@ Fase3-UsersAPI/
 │   │   ├── Observability/
 │   │   │   └── FcgMetersTests.cs
 │   │   └── Services/
-│   └── Fcg.Users.IntegrationTests/
+│   └── Fcg.Users.IntegrationTests/   # AuthIntegrationTests: login, discovery, jwks, validação manual; 1 teste pendente (ver JWT-RS256-OIDC-JWKS.md)
 └── docs/
+    ├── JWT-RS256-OIDC-JWKS.md      # Arquitetura JWT RS256, OIDC, JWKS; dev/prod; rotação; teste pendente
     └── STRUCTURE-AND-PACKAGES.md
 ```
 
@@ -84,6 +98,10 @@ dotnet add package BCrypt.Net-Next --version 4.0.3
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 10.0.3
 dotnet add package Microsoft.EntityFrameworkCore --version 10.0.0
 dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 10.0.0
+dotnet add package AWSSDK.Extensions.NETCore.Setup
+dotnet add package AWSSDK.SimpleSystemsManagement
+dotnet add package AWSSDK.SecretsManager
+dotnet add package Microsoft.Extensions.Hosting.Abstractions --version 10.0.0
 ```
 
 **Testes:**

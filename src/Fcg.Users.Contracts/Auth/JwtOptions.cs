@@ -1,15 +1,16 @@
 namespace Fcg.Users.Contracts.Auth;
 
-/// <summary>JWT configuration. Used by Users API for issuance and validation; same section for all FCG APIs.</summary>
+/// <summary>JWT configuration for RS256. Issuer must be a real URL for OIDC discovery and API Gateway JWT authorizer.</summary>
 public class JwtOptions
 {
     public const string SectionName = "Jwt";
 
-    public string Issuer { get; set; } = "Fcg.Users.Api";
-    public string Audience { get; set; } = "fcg-cloud-platform";
-    public string SigningKey { get; set; } = string.Empty;
-    public int ExpirationSeconds { get; set; } = 3600;
+    /// <summary>Issuer URL (e.g. https://users-api.example.com). Used in token "iss" and OIDC discovery.</summary>
+    public string Issuer { get; set; } = string.Empty;
 
-    /// <summary>Minimum length for SigningKey (security requirement).</summary>
-    public const int MinSigningKeyLength = 32;
+    /// <summary>Audience (e.g. fcg-cloud-platform). Used in token "aud" and validation.</summary>
+    public string Audience { get; set; } = "fcg-cloud-platform";
+
+    /// <summary>Access token lifetime in seconds.</summary>
+    public int ExpirationSeconds { get; set; } = 3600;
 }
