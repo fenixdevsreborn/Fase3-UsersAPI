@@ -12,7 +12,7 @@ public sealed class FirstAdminSeeder : IDataSeeder
 
     private const string DefaultUsername = "admin";
     private const string DefaultEmail = "admin@fcg.local";
-    private const string DefaultPassword = "Admin@123";
+    private const string DefaultPassword = "ChangeMe@123";
     private const string DefaultName = "System Admin";
 
     private readonly IUserRepository _userRepository;
