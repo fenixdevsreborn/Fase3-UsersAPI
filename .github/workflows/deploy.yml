@@ -1,0 +1,97 @@
+# ------------------------------------------------------------------------------
+# Deploy — FCG Fenix Users API
+# Testes → Build Docker → Push ECR (tag = github.sha) → Chamada ao reusable workflow de infra (SSM deploy).
+# Branch de deploy: junonn/mvp-aws. OIDC para AWS.
+# ------------------------------------------------------------------------------
+
+name: Deploy Users API
+
+on:
+  push:
+    branches: [junonn/mvp-aws]
+
+env:
+  SERVICE: usersapi
+  ECR_REPOSITORY_NAME: fcg-fenix-usersapi-ecr
+  DOTNET_VERSION: "10.0.x"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore Fcg.Users.slnx
+
+      - name: Build (Release)
+        run: dotnet build Fcg.Users.slnx -c Release --no-restore
+
+      - name: Test (Release)
+        run: dotnet test Fcg.Users.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=results.trx"
+
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      repository: ${{ steps.meta.outputs.repository }}
+      repository_uri: ${{ steps.meta.outputs.repository_uri }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set repository URI and tag
+        id: meta
+        run: |
+          REGISTRY="${{ steps.ecr.outputs.registry }}"
+          REPO="${{ env.ECR_REPOSITORY_NAME }}"
+          TAG="${{ github.sha }}"
+          echo "repository=${REGISTRY}/${REPO}" >> $GITHUB_OUTPUT
+          echo "repository_uri=${REGISTRY}/${REPO}:${TAG}" >> $GITHUB_OUTPUT
+          echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        run: |
+          docker build -f Dockerfile.postgres \
+            -t ${{ steps.meta.outputs.repository_uri }} .
+
+      - name: Push image
+        run: docker push ${{ steps.meta.outputs.repository_uri }}
+
+  deploy:
+    name: Deploy to EC2 (SSM)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    uses: ${{ vars.INFRA_REPO }}/.github/workflows/deploy-ec2.yml@master
+    with:
+      aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      environment: production
+      service: ${{ env.SERVICE }}
+      repository: ${{ needs.build-and-push.outputs.repository }}
+      image_tag: ${{ needs.build-and-push.outputs.image_tag }}
+    secrets:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}

@@ -14,7 +14,7 @@ COPY src src
 RUN dotnet publish src/Fcg.Users.Api/Fcg.Users.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime: Postgres + .NET na mesma imagem (runtime copiado da imagem oficial para compatibilidade com 10.0-preview)
-FROM postgres:16-bookworm
+FROM postgres:17-bookworm
 COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0-preview /usr/share/dotnet /usr/share/dotnet
 ENV PATH="${PATH}:/usr/share/dotnet"
 
