@@ -1,0 +1,33 @@
+# Build — context = raiz do repositório do serviço.
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+WORKDIR /src
+
+COPY src/Fcg.Users.Api/Fcg.Users.Api.csproj src/Fcg.Users.Api/
+COPY src/Fcg.Users.Application/Fcg.Users.Application.csproj src/Fcg.Users.Application/
+COPY src/Fcg.Users.Contracts/Fcg.Users.Contracts.csproj src/Fcg.Users.Contracts/
+COPY src/Fcg.Users.Domain/Fcg.Users.Domain.csproj src/Fcg.Users.Domain/
+COPY src/Fcg.Users.Infrastructure/Fcg.Users.Infrastructure.csproj src/Fcg.Users.Infrastructure/
+COPY src/Fcg.Users.ServiceDefaults/Fcg.Users.ServiceDefaults.csproj src/Fcg.Users.ServiceDefaults/
+
+RUN dotnet restore src/Fcg.Users.Api/Fcg.Users.Api.csproj
+COPY src src
+RUN dotnet publish src/Fcg.Users.Api/Fcg.Users.Api.csproj -c Release -o /app/publish --no-restore
+
+# Runtime: Postgres + .NET na mesma imagem (runtime copiado da imagem oficial para compatibilidade com 10.0-preview)
+FROM postgres:16-bookworm
+COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0-preview /usr/share/dotnet /usr/share/dotnet
+ENV PATH="${PATH}:/usr/share/dotnet"
+
+ENV POSTGRES_USER=postgres \
+    POSTGRES_PASSWORD=postgres \
+    ASPNETCORE_URLS=http://+:8080
+
+WORKDIR /app
+COPY --from=build /app/publish .
+COPY docker/entrypoint.sh /docker/entrypoint.sh
+RUN chmod +x /docker/entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/docker/entrypoint.sh"]
+CMD ["dotnet", "Fcg.Users.Api.dll"]

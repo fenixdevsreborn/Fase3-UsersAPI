@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------
-# Publish image — FCG Cloud Platform (microsserviço)
-# Build da imagem Docker, push no ECR com tag "latest" apenas.
-# Repositório ECR no formato {nome_repo}/service_name (ex.: fcg/fase03/users-api).
+# Publish image — Build e push da imagem (Postgres + API) no ECR.
+# Apenas publicação no ECR; sem trigger para orquestrador/infra.
 # ------------------------------------------------------------------------------
 
 name: Publish image
@@ -20,12 +19,8 @@ jobs:
     name: Build & Push to ECR
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # obrigatório para OIDC com AWS
+      id-token: write
       contents: read
-
-    outputs:
-      image_uri: ${{ steps.meta.outputs.tags }}
-      image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       # 1. Checkout do repositório
@@ -53,31 +48,10 @@ jobs:
           echo "tags=${REGISTRY}/${REPO}:users-api-latest" >> $GITHUB_OUTPUT
           echo "image_tag=users-api:users-api-latest" >> $GITHUB_OUTPUT
 
-      # 5. Build da imagem (Dockerfile na raiz do repo)
+      # 5. Build da imagem all-in-one (Postgres + API; Dockerfile.postgres)
       - name: Build image
-        run: docker build -f Dockerfile -t ${{ steps.meta.outputs.tags }} .
+        run: docker build -f Dockerfile.postgres -t ${{ steps.meta.outputs.tags }} .
 
       # 6. Push da imagem com tag latest
       - name: Push image
         run: docker push ${{ steps.meta.outputs.tags }}
-
-  # 8. Disparar o orquestrador para atualizar a infra com a nova imagem
-  trigger-orchestrator:
-    name: Trigger infra orchestrator
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Fase3-InfraOrchestrador
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.ORCHESTRATOR_REPO_TOKEN }}
-          repository: ${{ vars.ORCHESTRATOR_REPO }}
-          event-type: deploy-request
-          client-payload: |
-            {
-              "service_name": "${{ vars.SERVICE_NAME || 'users-api' }}",
-              "image_tag": "${{ needs.build-and-push.outputs.image_tag }}",
-              "image_uri": "${{ needs.build-and-push.outputs.image_uri }}",
-              "commit_sha": "${{ github.sha }}",
-              "environment": "${{ vars.ENVIRONMENT || 'prod' }}"
-            }

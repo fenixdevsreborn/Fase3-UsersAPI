@@ -5,14 +5,12 @@ using Fcg.Users.Api.OpenApi;
 using Fcg.Users.Infrastructure.Extensions;
 using Fcg.Users.Infrastructure.Persistence;
 using Fcg.Users.Infrastructure.Seeders;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.AddServiceDefaults();
 
 builder.Configuration.AddEnvironmentVariables();
 
@@ -49,8 +47,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
-
-app.MapDefaultEndpoints();
 
 if (!app.Environment.IsDevelopment() && !string.Equals(app.Environment.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase))
 {
@@ -111,11 +107,11 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        if (!config.GetValue<bool>("UseInMemoryDatabase"))
+    if (!config.GetValue<bool>("UseInMemoryDatabase"))
     {
-        var connectionString = config.GetConnectionString("UsersDb");
-        if (!string.IsNullOrWhiteSpace(connectionString))
-            await PostgresDatabaseEnsurer.EnsureExistsAsync(connectionString);
+        var connectionString = config.GetConnectionString("UsersDb")
+            ?? throw new InvalidOperationException("ConnectionStrings:UsersDb is required.");
+        await PostgresDatabaseEnsurer.EnsureExistsAsync(connectionString);
         await db.Database.MigrateAsync();
     }
 

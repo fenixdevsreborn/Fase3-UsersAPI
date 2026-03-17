@@ -25,7 +25,7 @@ Este repositório usa dois workflows: **CI** (restore, build, test) e **Publish 
 | Configure AWS (OIDC) | Assume a IAM Role via OIDC (sem access key); necessário `id-token: write`. |
 | Login to ECR | Autentica no Amazon ECR; o registry fica em `steps.ecr.outputs.registry`. |
 | Docker meta | Define repositório no formato `fcg/fase03/service_name` (ex.: `fcg/fase03/users-api`) e tag **latest**; URI final: `registry/fcg/fase03/service_name:latest`. |
-| Build image | `docker build -f Dockerfile -t <uri>` no contexto da raiz do repo. |
+| Build image | `docker build -f Dockerfile.postgres -t <uri>` — imagem all-in-one (Postgres + API) no contexto da raiz do repo. |
 | Push image | `docker push` da imagem com tag **latest** apenas. |
 | Trigger orchestrator | Envia `repository_dispatch` (evento `deploy-request`) para o repo do orquestrador com o payload (service_name, image_tag=latest, image_uri, commit_sha, environment). |
 
@@ -78,7 +78,7 @@ Para outro microsserviço (ex.: Games API) no mesmo estilo de repo: copie os doi
 
 ## 3.1. Dockerfile e contexto de build
 
-Os repositórios **não são monorepo**: cada serviço tem seu próprio repositório. O **Dockerfile** de cada um espera que o **contexto de build seja a raiz do repositório** (onde estão a pasta `src/` e o próprio `Dockerfile`). Os caminhos no Dockerfile usam `src/...` (sem prefixo do tipo `Fase3-UsersAPI/`). No CI, o workflow faz `docker build -f Dockerfile .` na raiz; não é necessário ajustar caminhos para monorepo.
+Os repositórios **não são monorepo**: cada serviço tem seu próprio repositório. Para publicação na nuvem usa-se **Dockerfile.postgres** (imagem all-in-one: Postgres + API no mesmo container). O contexto de build é a raiz do repositório (pasta `src/` e `docker/entrypoint.sh`). O workflow faz `docker build -f Dockerfile.postgres .` na raiz. Na nuvem, a task ECS recebe ConnectionStrings com `Host=localhost` para usar o Postgres do próprio container.
 
 ---
 
