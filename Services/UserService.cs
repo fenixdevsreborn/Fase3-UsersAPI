@@ -20,6 +20,9 @@ public class UserService
 
   public async Task<Users> Register(RegisterRequestUser request)
   {
+    if (request == null) throw new ArgumentNullException();
+    if (request.Email == null || request.Password == null || request.Name == null || request.Nickname == null) throw new ArgumentNullException();
+
     var client = new AmazonCognitoIdentityProviderClient();
 
     var signUpRequest = new SignUpRequest
@@ -99,6 +102,8 @@ public class UserService
 
   public async Task<object> Login(string email, string password)
   {
+    if (email == null || password == null) throw new ArgumentNullException();
+
     var client = new AmazonCognitoIdentityProviderClient();
 
     var request = new InitiateAuthRequest

@@ -68,10 +68,31 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:DescribeTable"
+                  ],
+                  "Resource": "arn:aws:dynamodb:us-east-1:864899865331:table/AuditLogs"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "cognito-idp:AdminConfirmSignUp",
                     "cognito-idp:AdminUpdateUserAttributes"
                   ],
                   "Resource": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_ZDPqjaUp4"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "xray:PutTraceSegments",
+                    "xray:PutTelemetryRecords"
+                  ],
+                  "Resource": "*"
                 }
               ]
             },

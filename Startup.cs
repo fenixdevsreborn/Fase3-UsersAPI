@@ -3,6 +3,8 @@ using ms_users.Repositories;
 using ms_users.Services;
 using ms_users.Messaging;
 using Amazon.DynamoDBv2;
+using Amazon.XRay.Recorder.Handlers.AwsSdk;
+using ms_users.Observability;
 
 namespace ms_users;
 
@@ -26,6 +28,10 @@ public class Startup
     services.AddScoped<UserRepository>();
     services.AddScoped<UserService>();
     services.AddScoped<EventPublisher>();
+
+    services.AddHttpContextAccessor();
+
+    AWSSDKHandler.RegisterXRayForAllServices();
   }
 
   public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -36,6 +42,8 @@ public class Startup
     }
 
     app.UseRouting();
+
+    app.UseMiddleware<XRayMiddleware>();
 
     app.UseAuthorization();
 
