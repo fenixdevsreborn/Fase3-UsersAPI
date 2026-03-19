@@ -85,6 +85,9 @@ jobs:
   deploy:
     name: Deploy to EC2 (SSM)
     needs: build-and-push
+    permissions:
+      id-token: write
+      contents: read
     uses: fenixdevsreborn/Fase3-InfraOrchestrador/.github/workflows/deploy-ec2.yml@master
     with:
       aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
