@@ -89,7 +89,7 @@ jobs:
     with:
       aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
       environment: production
-      service: ${{ env.SERVICE }}
+      service: usersapi
       repository: ${{ needs.build-and-push.outputs.repository }}
       image_tag: ${{ needs.build-and-push.outputs.image_tag }}
     secrets:
