@@ -84,9 +84,8 @@ jobs:
 
   deploy:
     name: Deploy to EC2 (SSM)
-    runs-on: ubuntu-latest
     needs: build-and-push
-    uses: ${{ vars.INFRA_REPO }}/.github/workflows/deploy-ec2.yml@master
+    uses: junonn/Fase3-InfraOrchestrador/.github/workflows/deploy-ec2.yml@master
     with:
       aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
       environment: production
