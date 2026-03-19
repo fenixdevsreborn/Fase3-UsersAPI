@@ -29,6 +29,7 @@
         "Type": "AWS::Serverless::Api",
         "Properties": {
           "StageName": "Prod",
+          "TracingEnabled": true,
           "Auth": {
             "DefaultAuthorizer": "CognitoAuthorizer",
             "Authorizers": {
