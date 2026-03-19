@@ -85,7 +85,7 @@ jobs:
   deploy:
     name: Deploy to EC2 (SSM)
     needs: build-and-push
-    uses: junonn/Fase3-InfraOrchestrador/.github/workflows/deploy-ec2.yml@master
+    uses: fenixdevsreborn/Fase3-InfraOrchestrador/.github/workflows/deploy-ec2.yml@master
     with:
       aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
       environment: production
