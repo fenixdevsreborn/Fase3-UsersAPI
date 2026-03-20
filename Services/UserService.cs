@@ -140,10 +140,23 @@ public class UserService
       return null;
 
     user.Name = request.Name;
-    user.Nickname = request.Nickname;
     user.UpdatedAt = DateTime.UtcNow;
 
     await _repository.Update(user);
+
+    var client = new AmazonCognitoIdentityProviderClient();
+
+    var cognitoRequest = new AdminUpdateUserAttributesRequest
+    {
+      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
+      Username = user.Email,
+      UserAttributes = new List<AttributeType>
+      {
+        new AttributeType { Name = "name", Value =  request.Name },
+      }
+    };
+
+    await client.AdminUpdateUserAttributesAsync(cognitoRequest);
 
     return user;
   }

@@ -34,7 +34,7 @@
             "DefaultAuthorizer": "CognitoAuthorizer",
             "Authorizers": {
               "CognitoAuthorizer": {
-                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_tx4MRYYtj"
+                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:864899865331:userpool/us-east-1_ZDPqjaUp4"
               }
             }
           }
