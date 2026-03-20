@@ -1,7 +1,3 @@
-Agora sim — com esse branch específico (`soares/mvp-aws-users`), dá pra assumir com muito mais segurança que ele segue exatamente o padrão do teu ecossistema (serverless + AWS + .NET), então vou te entregar um README **mais refinado, com linguagem institucional + técnica + alinhado com arquitetura cloud-native real**.
-
----
-
 # 👤 Users API - Fase 3 (MVP AWS)
 
 ## 📌 Visão Geral
