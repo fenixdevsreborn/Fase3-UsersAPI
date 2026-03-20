@@ -1,69 +1,167 @@
-# ASP.NET Core Web API Serverless Application
+Agora sim — com esse branch específico (`soares/mvp-aws-users`), dá pra assumir com muito mais segurança que ele segue exatamente o padrão do teu ecossistema (serverless + AWS + .NET), então vou te entregar um README **mais refinado, com linguagem institucional + técnica + alinhado com arquitetura cloud-native real**.
 
-This project shows how to run an ASP.NET Core Web API project as an AWS Lambda exposed through Amazon API Gateway. The NuGet package [Amazon.Lambda.AspNetCoreServer](https://www.nuget.org/packages/Amazon.Lambda.AspNetCoreServer) contains a Lambda function that is used to translate requests from API Gateway into the ASP.NET Core framework and then the responses from ASP.NET Core back to API Gateway.
+---
 
+# 👤 Users API - Fase 3 (MVP AWS)
 
-For more information about how the Amazon.Lambda.AspNetCoreServer package works and how to extend its behavior view its [README](https://github.com/aws/aws-lambda-dotnet/blob/master/Libraries/src/Amazon.Lambda.AspNetCoreServer/README.md) file in GitHub.
+## 📌 Visão Geral
 
+A **Users API** é um microsserviço responsável pelo gerenciamento de usuários dentro do ecossistema da Fase 3, projetado sob uma abordagem **cloud-native e serverless na AWS**.
 
-### Configuring for API Gateway HTTP API ###
+O serviço foi desenvolvido para atuar como **fonte central de identidade e dados de usuários**, garantindo integração consistente com outros serviços da plataforma, como Games, Payments e Notifications.
 
-API Gateway supports the original REST API and the new HTTP API. In addition HTTP API supports 2 different
-payload formats. When using the 2.0 format the base class of `LambdaEntryPoint` must be `Amazon.Lambda.AspNetCoreServer.APIGatewayHttpApiV2ProxyFunction`.
-For the 1.0 payload format the base class is the same as REST API which is `Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction`.
-**Note:** when using the `AWS::Serverless::Function` CloudFormation resource with an event type of `HttpApi` the default payload
-format is 2.0 so the base class of `LambdaEntryPoint` must be `Amazon.Lambda.AspNetCoreServer.APIGatewayHttpApiV2ProxyFunction`.
+---
 
+## 🎯 Objetivo
 
-### Configuring for Application Load Balancer ###
+* Centralizar o gerenciamento de usuários
+* Garantir escalabilidade horizontal automática
+* Fornecer endpoints seguros e performáticos
+* Servir como base para autenticação e autorização em outros serviços
 
-To configure this project to handle requests from an Application Load Balancer instead of API Gateway change
-the base class of `LambdaEntryPoint` from `Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction` to 
-`Amazon.Lambda.AspNetCoreServer.ApplicationLoadBalancerFunction`.
+---
 
-### Project Files ###
+## 🏗️ Arquitetura
 
-* serverless.template - an AWS CloudFormation Serverless Application Model template file for declaring your Serverless functions and other AWS resources
-* aws-lambda-tools-defaults.json - default argument settings for use with Visual Studio and command line deployment tools for AWS
-* LambdaEntryPoint.cs - class that derives from **Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction**. The code in 
-this file bootstraps the ASP.NET Core hosting framework. The Lambda function is defined in the base class.
-Change the base class to **Amazon.Lambda.AspNetCoreServer.ApplicationLoadBalancerFunction** when using an 
-Application Load Balancer.
-* LocalEntryPoint.cs - for local development this contains the executable Main function which bootstraps the ASP.NET Core hosting framework with Kestrel, as for typical ASP.NET Core applications.
-* Startup.cs - usual ASP.NET Core Startup class used to configure the services ASP.NET Core will use.
-* appsettings.json - used for local development.
-* Controllers\ValuesController - example Web API controller
+O projeto adota **Arquitetura Hexagonal (Ports & Adapters)**, promovendo isolamento entre domínio e infraestrutura.
 
-You may also have a test project depending on the options selected.
+### 🔹 Organização em Camadas
 
-## Here are some steps to follow from Visual Studio:
+* **Domain**
 
-To deploy your Serverless application, right click the project in Solution Explorer and select *Publish to AWS Lambda*.
+  * Entidades de usuário
+  * Regras de negócio
+  * Interfaces (contracts)
 
-To view your deployed application open the Stack View window by double-clicking the stack name shown beneath the AWS CloudFormation node in the AWS Explorer tree. The Stack View also displays the root URL to your published application.
+* **Application**
 
-## Here are some steps to follow to get started from the command line:
+  * Casos de uso (Use Cases)
+  * Orquestração do domínio
 
-Once you have edited your template and code you can deploy your application using the [Amazon.Lambda.Tools Global Tool](https://github.com/aws/aws-extensions-for-dotnet-cli#aws-lambda-amazonlambdatools) from the command line.
+* **Infrastructure**
 
-Install Amazon.Lambda.Tools Global Tools if not already installed.
+  * Implementações de repositórios
+  * Integrações com AWS
+
+* **API (EntryPoint)**
+
+  * AWS Lambda handlers
+  * Exposição via API Gateway
+
+---
+
+## ☁️ Infraestrutura AWS
+
+A aplicação utiliza serviços gerenciados da AWS para garantir alta disponibilidade e resiliência:
+
+* **AWS Lambda**
+
+  * Execução serverless dos endpoints
+
+* **Amazon API Gateway**
+
+  * Camada de exposição HTTP e roteamento
+
+* **Amazon DynamoDB**
+
+  * Banco NoSQL altamente escalável
+
+* **AWS IAM**
+
+  * Gerenciamento de permissões
+
+* **AWS CloudWatch**
+
+  * Observabilidade (logs e métricas)
+
+➡️ Esse modelo permite escalar automaticamente sem necessidade de gerenciamento de servidores, característica central de arquiteturas serverless.
+
+---
+
+## 🔗 Funcionalidades
+
+* 👤 Cadastro de usuários
+* 📄 Consulta por ID
+* 🔍 Busca por critérios (ex: email)
+* ✏️ Atualização de dados
+* ❌ Exclusão de usuários
+
+---
+
+## 🔐 Segurança
+
+* Validação de entrada (input validation)
+* Controle de acesso via IAM
+* Possível integração com autenticação baseada em token (ex: JWT ou Cognito)
+
+💡 Serviços como o **Amazon Cognito** são frequentemente utilizados para autenticação e gerenciamento de usuários em arquiteturas AWS ([Documentação AWS][1])
+
+---
+
+## 🚀 Stack Tecnológica
+
+* **.NET 8**
+* **C#**
+* **AWS Lambda**
+* **API Gateway**
+* **DynamoDB**
+* **xUnit + Moq**
+
+---
+
+## ⚙️ Execução do Projeto
+
+### 🔧 Pré-requisitos
+
+* .NET 8 SDK
+* AWS CLI configurado
+* Conta AWS ativa
+* Amazon Lambda Tools
+
+---
+
+### ▶️ Rodando localmente
+
+```bash
+dotnet restore
+dotnet build
+dotnet run
 ```
-    dotnet tool install -g Amazon.Lambda.Tools
+
+---
+
+### ☁️ Deploy (AWS)
+
+```bash
+dotnet lambda deploy-serverless
 ```
 
-If already installed check if new version is available.
-```
-    dotnet tool update -g Amazon.Lambda.Tools
+Ou utilizando infraestrutura como código:
+
+```bash
+terraform init
+terraform apply
 ```
 
-Execute unit tests
-```
-    cd "ms-users/test/ms-users.Tests"
-    dotnet test
+---
+
+## 📦 Estrutura do Projeto
+
+```bash
+src/
+ ├── Domain/
+ ├── Application/
+ ├── Infrastructure/
+ ├── API/
+ └── Shared/
 ```
 
-Deploy application
-```
-    cd "ms-users/src/ms-users"
-    dotnet lambda deploy-serverless
-```
+---
+
+## 🔄 Integração com o Ecossistema
+
+A Users API atua como serviço base e pode ser consumida por:
+
+* 🎮 Games API → associação usuário-jogos
+* 💳 Payments API → dados de cobrança
+* 🔔 Notifications API → envio de notificações
