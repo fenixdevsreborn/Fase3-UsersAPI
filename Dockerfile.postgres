@@ -17,6 +17,9 @@ RUN dotnet publish src/Fcg.Users.Api/Fcg.Users.Api.csproj -c Release -o /app/pub
 FROM postgres:17-bookworm
 COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0 /usr/share/dotnet /usr/share/dotnet
 ENV PATH="${PATH}:/usr/share/dotnet"
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV POSTGRES_USER=postgres \
     POSTGRES_PASSWORD=postgres \
