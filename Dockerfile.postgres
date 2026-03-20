@@ -1,5 +1,5 @@
 # Build — context = raiz do repositório do serviço.
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY src/Fcg.Users.Api/Fcg.Users.Api.csproj src/Fcg.Users.Api/
@@ -13,9 +13,9 @@ RUN dotnet restore src/Fcg.Users.Api/Fcg.Users.Api.csproj
 COPY src src
 RUN dotnet publish src/Fcg.Users.Api/Fcg.Users.Api.csproj -c Release -o /app/publish --no-restore
 
-# Runtime: Postgres + .NET na mesma imagem (runtime copiado da imagem oficial para compatibilidade com 10.0-preview)
+# Runtime: Postgres + .NET na mesma imagem (runtime alinhado ao TFM net10.0 / pacotes 10.0.x — não usar preview aqui)
 FROM postgres:17-bookworm
-COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0-preview /usr/share/dotnet /usr/share/dotnet
+COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0 /usr/share/dotnet /usr/share/dotnet
 ENV PATH="${PATH}:/usr/share/dotnet"
 
 ENV POSTGRES_USER=postgres \

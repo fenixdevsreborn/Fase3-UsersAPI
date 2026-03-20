@@ -166,7 +166,7 @@ Para rodar mais de uma API (Users, Payments, Games) ao mesmo tempo na mesma máq
 
 - **Contexto**: raiz do repositório.
 - **Build**: multi-stage com SDK .NET 10; publica a API em Release.
-- **Runtime**: imagem `aspnet:10.0-preview`; porta **8080**; `ASPNETCORE_URLS=http://+:8080`.
+- **Runtime**: imagem `aspnet:10.0` (alinhada aos pacotes `10.0.x`; evite `10.0-preview`, que causa `TypeLoadException` em tipos como `IDisableCookieRedirectMetadata`). Porta **8080**; `ASPNETCORE_URLS=http://+:8080`.
 - Uso: quando o PostgreSQL está em outro container ou serviço gerenciado.
 
 ```bash
