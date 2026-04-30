@@ -1,0 +1,9 @@
+bin
+obj
+.git
+.gitignore
+.github
+*.sln.backup.tmp
+serverless.template
+LambdaEntryPoint.cs
+aws-lambda-tools-defaults.json

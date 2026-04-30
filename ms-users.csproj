@@ -4,15 +4,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <AWSProjectType>Lambda</AWSProjectType>
-    <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <!-- Generate ready to run images during publishing to improve cold start time. -->
-    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="9.2.0" />
+    <None Remove=".dockerignore" />
+    <None Remove="Dockerfile" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AWSSDK.CognitoIdentityProvider" Version="4.0.6" />
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.15" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.3.23" />
@@ -20,5 +17,7 @@
     <PackageReference Include="AWSXRayRecorder.Core" Version="2.16.0" />
     <PackageReference Include="AWSXRayRecorder.Handlers.AwsSdk" Version="2.14.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+	<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.0" />
+	<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 </Project>
