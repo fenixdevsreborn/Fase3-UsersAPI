@@ -1,22 +1,43 @@
-﻿using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2;
+﻿using ms_users.Infrastructure;
 using ms_users.Models;
 
-namespace ms_users.Repositories
-{
-  public class AuditRepository
-  {
-    private readonly DynamoDBContext _context;
+namespace ms_users.Repositories;
 
-    public AuditRepository()
+public interface IAuditRepository
+{
+    Task Log(AuditLog log);
+    Task<IEnumerable<AuditLog>> GetByUserId(string userId);
+    Task<IEnumerable<AuditLog>> GetByTableName(string tableName);
+}
+
+public class AuditRepository : IAuditRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public AuditRepository(ApplicationDbContext context)
     {
-      var client = new AmazonDynamoDBClient();
-      _context = new DynamoDBContext(client);
+        _context = context;
     }
 
     public async Task Log(AuditLog log)
     {
-      await _context.SaveAsync(log);
+        _context.AuditLogs.Add(log);
+        await _context.SaveChangesAsync();
     }
-  }
+
+    public async Task<IEnumerable<AuditLog>> GetByUserId(string userId)
+    {
+        return _context.AuditLogs
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.Timestamp)
+            .ToList();
+    }
+
+    public async Task<IEnumerable<AuditLog>> GetByTableName(string tableName)
+    {
+        return _context.AuditLogs
+            .Where(a => a.TableName == tableName)
+            .OrderByDescending(a => a.Timestamp)
+            .ToList();
+    }
 }

@@ -1,168 +1,174 @@
 ﻿using ms_users.Repositories;
 using ms_users.Messaging;
 using ms_users.Events;
-using Amazon.CognitoIdentityProvider.Model;
-using Amazon.CognitoIdentityProvider;
 using ms_users.Models;
+using System.Security.Cryptography;
 
 namespace ms_users.Services;
 
 public class UserService
 {
-  private readonly UserRepository _repository;
-  private readonly EventPublisher _publisher;
+    private readonly IUserRepository _repository;
+    private readonly IMessagePublisher _publisher;
+    private readonly IJwtService _jwtService;
 
-  public UserService(UserRepository repository, EventPublisher publisher)
-  {
-    _repository = repository;
-    _publisher = publisher;
-  }
-
-  public async Task<Users> Register(RegisterRequestUser request)
-  {
-    if (request == null) throw new ArgumentNullException();
-    if (request.Email == null || request.Password == null || request.Name == null || request.Nickname == null) throw new ArgumentNullException();
-
-    var client = new AmazonCognitoIdentityProviderClient();
-
-    var signUpRequest = new SignUpRequest
+    public UserService(
+        IUserRepository repository,
+        IMessagePublisher publisher,
+        IJwtService jwtService)
     {
-      ClientId = Environment.GetEnvironmentVariable("COGNITO_CLIENT_ID"),
-      Username = request.Nickname,
-      Password = request.Password,
-      UserAttributes = new List<AttributeType>
+        _repository = repository;
+        _publisher = publisher;
+        _jwtService = jwtService;
+    }
+
+    public async Task<Users> Register(RegisterRequestUser request)
+    {
+        if (request?.Email == null || request.Password == null)
+            throw new ArgumentNullException(nameof(request));
+
+        // Check if user already exists
+        var existingUser = await _repository.GetByEmail(request.Email);
+        if (existingUser != null)
+            throw new InvalidOperationException("User already exists");
+
+        var hashedPassword = HashPassword(request.Password);
+        var userId = Guid.NewGuid().ToString();
+
+        var user = new Users
         {
-            new AttributeType
+            Id = userId,
+            Email = request.Email,
+            Nickname = request.Nickname,
+            Name = request.Name,
+            PasswordHash = hashedPassword,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _repository.Create(user);
+
+        // Publish event to RabbitMQ
+        var emailEvent = new EmailNotificationEvent
+        {
+            Title = "Bem-vindo à Game Store",
+            Subtitle = "Sua conta foi criada com sucesso",
+            Body = "Agora você pode comprar e jogar seus games favoritos.",
+            Recipient = request.Email
+        };
+
+        await _publisher.PublishAsync("notification-queue", emailEvent);
+
+        return user;
+    }
+
+    public async Task<object> Login(string email, string password)
+    {
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            throw new ArgumentNullException();
+
+        var user = await _repository.GetByEmail(email);
+        if (user == null)
+            throw new UnauthorizedAccessException("Invalid credentials");
+
+        if (!VerifyPassword(password, user.PasswordHash))
+            throw new UnauthorizedAccessException("Invalid credentials");
+
+        var accessToken = _jwtService.GenerateToken(user.Id, user.Email);
+        var refreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _repository.Update(user);
+
+        return new
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = 86400
+        };
+    }
+
+    public async Task<Users?> GetById(string id)
+    {
+        return await _repository.GetById(id);
+    }
+
+    public async Task<Users?> Update(string userId, UpdateUserRequest request)
+    {
+        var user = await _repository.GetById(userId);
+        if (user == null)
+            return null;
+
+        // Update only non-null fields
+        if (!string.IsNullOrEmpty(request.Name))
+            user.Name = request.Name;
+
+        if (!string.IsNullOrEmpty(request.Nickname))
+            user.Nickname = request.Nickname;
+
+        if (!string.IsNullOrEmpty(request.Email))
+            user.Email = request.Email;
+
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.Update(user);
+
+        return user;
+    }
+
+    public async Task Disable(string userId)
+    {
+        await _repository.Disable(userId);
+    }
+
+    private string HashPassword(string password)
+    {
+        using (var sha256 = SHA256.Create())
+        {
+            var salt = new byte[16];
+            using (var rng = RandomNumberGenerator.Create())
             {
-                Name = "email",
-                Value = request.Email
-            },
-            new AttributeType
-            {
-                Name = "nickname",
-                Value = request.Nickname
-            },
-            new AttributeType
-            {
-                Name = "name",
-                Value = request.Name
+                rng.GetBytes(salt);
             }
+
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
+            var hash = pbkdf2.GetBytes(20);
+
+            byte[] hashBytes = new byte[36];
+            Array.Copy(salt, 0, hashBytes, 0, 16);
+            Array.Copy(hash, 0, hashBytes, 16, 20);
+
+            return Convert.ToBase64String(hashBytes);
         }
-    };
+    }
 
-    var response = await client.SignUpAsync(signUpRequest);
-
-    await client.AdminConfirmSignUpAsync(new AdminConfirmSignUpRequest
+    private bool VerifyPassword(string password, string? hash)
     {
-      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
-      Username = request.Nickname
-    });
+        if (string.IsNullOrEmpty(hash))
+            return false;
 
-    await client.AdminUpdateUserAttributesAsync(new AdminUpdateUserAttributesRequest
-    {
-      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
-      Username = request.Nickname,
-      UserAttributes = new List<AttributeType>
-      {
-          new AttributeType
-          {
-              Name = "email_verified",
-              Value = "true"
-          }
-      }
-    });
+        byte[] hashBytes = Convert.FromBase64String(hash);
+        byte[] salt = new byte[16];
+        Array.Copy(hashBytes, 0, salt, 0, 16);
 
-    var cognitoSub = response.UserSub;
+        var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
+        byte[] hash2 = pbkdf2.GetBytes(20);
 
-    var user = new Users
-    {
-      Id = cognitoSub,
-      Email = request.Email,
-      Nickname = request.Nickname,
-      Name = request.Name,
-    };
-
-    await _repository.Create(user);
-
-    var emailEvent = new EmailNotificationEvent
-    {
-      Title = "Bem-vindo à Game Store",
-      Subtitle = "Sua conta foi criada com sucesso",
-      Body = "Agora você pode comprar e jogar seus games favoritos.",
-      Recipient = request.Email
-    };
-
-    var notificationQueue =
-        Environment.GetEnvironmentVariable("NOTIFICATION_QUEUE_URL");
-
-    await _publisher.PublishAsync(notificationQueue, emailEvent);
-
-    return user;
-  }
-
-  public async Task<object> Login(string email, string password)
-  {
-    if (email == null || password == null) throw new ArgumentNullException();
-
-    var client = new AmazonCognitoIdentityProviderClient();
-
-    var request = new InitiateAuthRequest
-    {
-      AuthFlow = AuthFlowType.USER_PASSWORD_AUTH,
-      ClientId = Environment.GetEnvironmentVariable("COGNITO_CLIENT_ID"),
-      AuthParameters = new Dictionary<string, string>
+        for (int i = 0; i < 20; i++)
         {
-            { "USERNAME", email },
-            { "PASSWORD", password }
+            if (hashBytes[i + 16] != hash2[i])
+                return false;
         }
-    };
+        return true;
+    }
 
-    var response = await client.InitiateAuthAsync(request);
-
-    return new
+    private string GenerateRefreshToken()
     {
-      IdToken = response.AuthenticationResult.IdToken,
-      AccessToken = response.AuthenticationResult.AccessToken,
-      RefreshToken = response.AuthenticationResult.RefreshToken
-    };
-  }
-
-  public async Task<Users?> GetById(string id)
-  {
-    return await _repository.GetById(id);
-  }
-
-  public async Task<Users?> Update(string id, UpdateUserRequest request)
-  {
-    var user = await _repository.GetById(id);
-
-    if (user == null)
-      return null;
-
-    user.Name = request.Name;
-    user.UpdatedAt = DateTime.UtcNow;
-
-    await _repository.Update(user);
-
-    var client = new AmazonCognitoIdentityProviderClient();
-
-    var cognitoRequest = new AdminUpdateUserAttributesRequest
-    {
-      UserPoolId = Environment.GetEnvironmentVariable("COGNITO_USER_POOL_ID"),
-      Username = user.Email,
-      UserAttributes = new List<AttributeType>
-      {
-        new AttributeType { Name = "name", Value =  request.Name },
-      }
-    };
-
-    await client.AdminUpdateUserAttributesAsync(cognitoRequest);
-
-    return user;
-  }
-
-  public async Task Disable(string id)
-  {
-    await _repository.Disable(id);
-  }
+        var randomNumber = new byte[64];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomNumber);
+        }
+        return Convert.ToBase64String(randomNumber);
+    }
 }

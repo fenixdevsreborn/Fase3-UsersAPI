@@ -2,11 +2,12 @@
   "profiles": {
     "ms-users": {
       "commandName": "Project",
+      "dotnetRunMessages": true,
       "launchBrowser": true,
+      "applicationUrl": "https://localhost:51315;http://localhost:51316",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "https://localhost:51315;http://localhost:51316"
+      }
     }
   }
 }
