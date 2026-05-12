@@ -54,3 +54,11 @@ TestResult.xml
 nunit-*.xml
 
 .vs
+
+# Terraform generated files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+errored.tfstate
+crash.log
+crash.*.log

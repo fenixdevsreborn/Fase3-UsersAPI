@@ -1,0 +1,8 @@
+project_name        = "fase3-users-api"
+environment         = "dev"
+aws_region          = "us-east-1"
+cluster_version     = "1.30"
+node_instance_types = ["m7i-flex.large"]
+node_min_size       = 2
+node_max_size       = 4
+node_desired_size   = 2

@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-api
+  namespace: fase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users-api
+  template:
+    metadata:
+      labels:
+        app: users-api
+    spec:
+      containers:
+      - name: users-api
+        image: adinteltidev/users-api:5
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Development
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: db-connection
+        - name: Jwt__Secret
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret
+        - name: Jwt__Issuer
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-issuer
+        - name: Jwt__Audience
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-audience
+        - name: Jwt__ExpirationHours
+          value: "24"
+        - name: RabbitMq__Host
+          value: rabbitmq
+        - name: RabbitMq__Port
+          value: "5672"
+        - name: RabbitMq__Username
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: rabbitmq-user
+        - name: RabbitMq__Password
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: rabbitmq-pass
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 2

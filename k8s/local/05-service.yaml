@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-api
+  namespace: fase4
+spec:
+  type: LoadBalancer
+  selector:
+    app: users-api
+  ports:
+  - port: 80
+    targetPort: 8080
