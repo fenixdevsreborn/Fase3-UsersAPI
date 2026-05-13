@@ -86,17 +86,22 @@ public class Startup
         if (string.IsNullOrEmpty(jwtSecret))
             throw new InvalidOperationException("JWT Secret is not configured");
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        {
+            KeyId = Configuration["Jwt:KeyId"] ?? "ms-users-api-signing-key"
+        };
 
         services.AddAuthentication("Bearer")
             .AddJwtBearer("Bearer", options =>
             {
                 options.Authority = null;
+                options.MapInboundClaims = false;
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = key,
+                    IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) => new[] { key },
                     ValidateIssuer = !string.IsNullOrEmpty(jwtIssuer),
                     ValidIssuer = jwtIssuer,
                     ValidateAudience = !string.IsNullOrEmpty(jwtAudience),

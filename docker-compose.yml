@@ -55,6 +55,7 @@ services:
       Jwt__Secret: "your-super-secret-key-at-least-32-characters-long!"
       Jwt__Issuer: "ms-users-api"
       Jwt__Audience: "ms-users-api-client"
+      Jwt__KeyId: "ms-users-api-signing-key"
       Jwt__ExpirationHours: "24"
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: "5672"

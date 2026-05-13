@@ -62,6 +62,11 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: jwt-audience
+        - name: Jwt__KeyId
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-key-id
         - name: Jwt__ExpirationHours
           value: "24"
         - name: RabbitMq__Host

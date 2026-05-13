@@ -24,7 +24,10 @@ public class JwtService : IJwtService
 
         var jwtSecret = _configuration["Jwt:Secret"]
             ?? throw new InvalidOperationException("JWT Secret not configured");
-        _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+        _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        {
+            KeyId = _configuration["Jwt:KeyId"] ?? "ms-users-api-signing-key"
+        };
     }
 
     public string GenerateToken(string userId, string email)
@@ -70,6 +73,7 @@ public class JwtService : IJwtService
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = _key,
+                IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) => new[] { _key },
                 ValidateIssuer = true,
                 ValidIssuer = _configuration["Jwt:Issuer"],
                 ValidateAudience = true,
