@@ -11,7 +11,7 @@ public interface IMessagePublisher
 public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
 {
     private readonly IConnection _connection;
-    private IChannel _channel;
+    private IChannel? _channel;
     private readonly IConfiguration _configuration;
 
     public RabbitMqPublisher(IConfiguration configuration)
@@ -22,7 +22,8 @@ public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
             HostName = _configuration["RabbitMq:Host"] ?? "localhost",
             Port = int.Parse(_configuration["RabbitMq:Port"] ?? "5672"),
             UserName = _configuration["RabbitMq:Username"] ?? "guest",
-            Password = _configuration["RabbitMq:Password"] ?? "guest"
+            Password = _configuration["RabbitMq:Password"] ?? "guest",
+            VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? "/"
             // DispatchConsumersAsync is removed - async is default in v13.x+
         };
 
@@ -51,13 +52,31 @@ public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
             await EnsureChannelAsync();
 
             // Declare queue (idempotent - won't fail if it exists)
-            await _channel.QueueDeclareAsync(
+            await _channel!.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null
             );
+
+            var exchangeName = _configuration["RabbitMq:ExchangeName"];
+            if (!string.IsNullOrWhiteSpace(exchangeName))
+            {
+                await _channel.ExchangeDeclareAsync(
+                    exchange: exchangeName,
+                    type: ExchangeType.Topic,
+                    durable: true,
+                    autoDelete: false,
+                    arguments: null
+                );
+
+                await _channel.QueueBindAsync(
+                    queue: queueName,
+                    exchange: exchangeName,
+                    routingKey: queueName
+                );
+            }
 
             var messageBody = JsonSerializer.Serialize(message);
             var body = System.Text.Encoding.UTF8.GetBytes(messageBody);
@@ -70,7 +89,7 @@ public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
             };
 
             await _channel.BasicPublishAsync(
-                exchange: string.Empty,
+                exchange: exchangeName ?? string.Empty,
                 routingKey: queueName,
                 mandatory: false,
                 basicProperties: properties,

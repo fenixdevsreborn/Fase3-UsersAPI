@@ -71,13 +71,20 @@ spec:
         - name: RabbitMq__Username
           valueFrom:
             secretKeyRef:
-              name: app-secrets
+              name: rabbitmq-secrets
               key: rabbitmq-user
         - name: RabbitMq__Password
           valueFrom:
             secretKeyRef:
-              name: app-secrets
+              name: rabbitmq-secrets
               key: rabbitmq-pass
+        - name: RabbitMq__VirtualHost
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secrets
+              key: rabbitmq-vhost
+        - name: RabbitMq__ExchangeName
+          value: fiap.events
         resources:
           requests:
             memory: "256Mi"

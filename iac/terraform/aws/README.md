@@ -40,7 +40,7 @@ Este diretorio cria a infraestrutura AWS para executar a Web API .NET 8 em Kuber
 3. Configurar o `kubectl`:
 
    ```powershell
-   aws eks update-kubeconfig --region us-east-1 --name fase3-users-api-dev
+   
    ```
 
 4. Publicar a imagem no Docker Hub:

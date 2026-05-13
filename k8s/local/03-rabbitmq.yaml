@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: rabbitmq
   namespace: fase4
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/part-of: fase4-shared-messaging
 spec:
   type: ClusterIP
   selector:
@@ -21,6 +24,9 @@ kind: Deployment
 metadata:
   name: rabbitmq
   namespace: fase4
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/part-of: fase4-shared-messaging
 spec:
   replicas: 1
   selector:
@@ -44,13 +50,18 @@ spec:
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:
             secretKeyRef:
-              name: app-secrets
+              name: rabbitmq-secrets
               key: rabbitmq-user
         - name: RABBITMQ_DEFAULT_PASS
           valueFrom:
             secretKeyRef:
-              name: app-secrets
+              name: rabbitmq-secrets
               key: rabbitmq-pass
+        - name: RABBITMQ_DEFAULT_VHOST
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secrets
+              key: rabbitmq-vhost
         resources:
           requests:
             memory: "256Mi"
