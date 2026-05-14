@@ -34,7 +34,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: users-api
-        image: adinteltidev/users-api:5
+        image: adinteltidev/fase4-users-api:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

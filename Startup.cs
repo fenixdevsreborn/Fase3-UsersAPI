@@ -143,11 +143,7 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        using (var scope = app.ApplicationServices.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-        }
+        ApplyDatabaseMigrations(app);
 
         if (env.IsDevelopment())
         {
@@ -176,5 +172,33 @@ public class Startup
                 await context.Response.WriteAsync("Users API running with PostgreSQL");
             });
         });
+    }
+
+    private static void ApplyDatabaseMigrations(IApplicationBuilder app)
+    {
+        const int maxAttempts = 10;
+        var delay = TimeSpan.FromSeconds(5);
+
+        using var scope = app.ApplicationServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                logger.LogInformation("Applying database migrations. Attempt {Attempt}/{MaxAttempts}", attempt, maxAttempts);
+                dbContext.Database.Migrate();
+                logger.LogInformation("Database migrations applied successfully.");
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                logger.LogWarning(ex, "Database migration failed. Retrying in {DelaySeconds} seconds.", delay.TotalSeconds);
+                Thread.Sleep(delay);
+            }
+        }
+
+        dbContext.Database.Migrate();
     }
 }
