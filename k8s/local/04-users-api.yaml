@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: users-api
-        image: adinteltidev/users-api:6
+        image: adinteltidev/fase4-users-api:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
