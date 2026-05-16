@@ -80,7 +80,14 @@ Este diretorio cria a infraestrutura AWS para executar a Web API .NET 8 em Kuber
 
    ```powershell
    kubectl apply -f ../../../k8s/eks/00-namespace.yaml
-   kubectl apply -f ../../../k8s/eks/01-secrets.yaml
+   kubectl create secret generic app-secrets -n fase4 `
+     --from-literal=db-connection="$env:USERS_DB_CONNECTION_STRING" `
+     --from-literal=db-password="$env:POSTGRES_PASSWORD" `
+     --from-literal=jwt-secret="$env:JWT_SECRET" `
+     --from-literal=jwt-issuer="$env:JWT_ISSUER" `
+     --from-literal=jwt-audience="$env:JWT_AUDIENCE" `
+     --from-literal=jwt-key-id="$env:JWT_KEY_ID" `
+     --dry-run=client -o yaml | kubectl apply -f -
    kubectl apply -f ../../../k8s/eks/02-postgres-pvc.yaml
    kubectl apply -f ../../../k8s/eks/02-postgres.yaml
    kubectl apply -f ../../../k8s/eks/03-rabbitmq.yaml

@@ -19,11 +19,11 @@ public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
         _configuration = configuration;
         var factory = new ConnectionFactory
         {
-            HostName = _configuration["RabbitMq:Host"] ?? "localhost",
+            HostName = RequireConfiguration("RabbitMq:Host"),
             Port = int.Parse(_configuration["RabbitMq:Port"] ?? "5672"),
-            UserName = _configuration["RabbitMq:Username"] ?? "guest",
-            Password = _configuration["RabbitMq:Password"] ?? "guest",
-            VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? "/"
+            UserName = RequireConfiguration("RabbitMq:Username"),
+            Password = RequireConfiguration("RabbitMq:Password"),
+            VirtualHost = RequireConfiguration("RabbitMq:VirtualHost")
             // DispatchConsumersAsync is removed - async is default in v13.x+
         };
 
@@ -35,6 +35,12 @@ public class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
         {
             throw new InvalidOperationException("Failed to connect to RabbitMQ", ex);
         }
+    }
+
+    private string RequireConfiguration(string key)
+    {
+        return _configuration[key]
+            ?? throw new InvalidOperationException($"RabbitMQ configuration '{key}' is not configured");
     }
 
     private async Task EnsureChannelAsync()

@@ -36,7 +36,10 @@ spec:
         - name: POSTGRES_USER
           value: postgres
         - name: POSTGRES_PASSWORD
-          value: postgres123
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: db-password
         - name: POSTGRES_DB
           value: users_db
         - name: PGDATA
